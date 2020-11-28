@@ -99,10 +99,9 @@ This has the following format:
 
 ```
 {
- "essentia":"/home/storage/Music/",
  "lms":"/home/storage/Music/",
  "db":"/home/craig/Development/Essentia/lms-essentia/essentia.db",
- "port":11002,
+ "port":11000,
  "host":"0.0.0.0",
  "genres":[
   ["Alternative Rock", "Classic Rock", "Folk/Rock", "Hard Rock", "Indie Rock", "Punk Rock", "Rock"],
@@ -112,9 +111,6 @@ This has the following format:
 }
 ```
 
-* `essentia` should be the path where essentia can access your music files. This
-can be different to `lms` if you ran the analysis on a different machine to where
-you would run the script as the API server.
 * `lms` should be the path where LMS access your music files. The API
 server will remove this path from API calls, so that it can look up tracks in
 its database by their relative path.
