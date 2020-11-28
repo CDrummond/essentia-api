@@ -1,0 +1,10 @@
+[Unit]
+Description=Essentia API Server
+
+[Service]
+Type=simple
+User=lms
+ExecStart=/usr/bin/python3 /usr/local/essentia/essentia-api.py -c /usr/local/essentia/pi.json
+
+[Install]
+WantedBy=multi-user.target
