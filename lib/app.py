@@ -187,10 +187,10 @@ def similar_api():
                         log_track('FILTERED(current)', track)
                         filtered_by_current_tracks.append(track)
                     elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
-                        log_track('FILTERED(ignore)', track)
+                        log_track('FILTERED(previous(artist))', track)
                         filtered_by_previous_tracks.append(track)
                     elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
-                        log_track('FILTERED(ignore(album))', track)
+                        log_track('FILTERED(previous(album))', track)
                         filtered_by_previous_tracks.append(track)
                     else:
                         log_track('USABLE', track)
