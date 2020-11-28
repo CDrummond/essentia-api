@@ -60,21 +60,19 @@ class TracksDb(object):
             if 'bpm'==attr:
                 where+='and (%s between %d AND %d)' % (attr, seed[attr]-50, seed[attr]+50)
             else:
-                if seed[attr]>0.5:
-                    where+='and (%s between 0.5 AND 1.0)' % attr
-                else:
-                    where+='and (%s between 0 AND 0.5)' % attr
+                where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.3, seed[attr]+0.3)
+
         if min_duration>0 or max_duration>0:
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
         # Ty to get similar tracks using 'where'
-        self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) and (artist!="%s") %s %s' % (query, seed['artist'], where, duration))
+        self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist!="%s") %s' % (query, duration, seed['artist'], where))
         rows = self.cursor.fetchall()
-        _LOGGER.debug('Num rows: %d' % len(rows))
+        _LOGGER.debug('Close rows: %d' % len(rows))
         if len(rows)<MIN_SIMILAR:
             # Too few (as we might filter), so just get all tracks...
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s' % (query, duration))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != "%s")' % (query, duration, seed['artist']))
             rows = self.cursor.fetchall()
-            _LOGGER.debug('ALL rows: %d' % len(rows))
+            _LOGGER.debug('All rows: %d' % len(rows))
 
         entries=[]
         for row in rows:
