@@ -207,7 +207,7 @@ def similar_api():
         similar_tracks = similar_tracks + filtered_by_previous_tracks[:min_count-len(similar_tracks)]
     if len(similar_tracks)<min_count and len(filtered_by_current_tracks)>0:
         _LOGGER.debug('Add some tracks from filtered_by_current_tracks, %d/%d' % (len(similar_tracks), len(filtered_by_current_tracks)))
-        filtered_by_seeds_tracks = sorted(filtered_by_current_tracks, key=lambda k: k['similarity'])
+        filtered_by_current_tracks = sorted(filtered_by_current_tracks, key=lambda k: k['similarity'])
         similar_tracks = similar_tracks + filtered_by_current_tracks[:min_count-len(similar_tracks)]
     if len(similar_tracks)<min_count and len(filtered_by_seeds_tracks)>0:
         _LOGGER.debug('Add some tracks from filtered_by_seeds_tracks, %d/%d' % (len(similar_tracks), len(filtered_by_seeds_tracks)))
