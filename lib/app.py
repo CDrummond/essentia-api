@@ -165,7 +165,7 @@ def similar_api():
     similarity_count = int(count * SHUFFLE_FACTOR) if shuffle else count
     for seed in seed_track_db_entries:
         # Query DB for similar tracks
-        resp = db.get_similar_tracks(seed, min_duration, max_duration)
+        resp = db.get_similar_tracks(seed, seed_genres, min_duration, max_duration)
         accepted_tracks = 0
         for track in resp:
             if (not track['file'] in seed_files) and (not track['file'] in previous_files) and (not track['file'] in checked_files):
