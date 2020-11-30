@@ -64,6 +64,8 @@ class TracksDb(object):
                 where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.3, seed[attr]+0.3)
 
         if min_duration>0 or max_duration>0:
+            if max_duration<=0:
+                max_duration = 24*60*60
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
         # Ty to get similar tracks using 'where'
         self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist!="%s") %s' % (query, duration, seed['artist'], where))
