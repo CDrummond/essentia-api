@@ -12,7 +12,7 @@ import sqlite3
 
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS         = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
-ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         0.9,          0.25,         0.25,       0.65,     0.8,     0.65,      0.4,   0.4,    0.1,     0.2,     1.0]
+ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.5,           0.5,        0.65,    0.8,     0.65,      0.4,   0.4,    0.5,     0.5,     1.0]
 MIN_SIMILAR = 100
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,7 +50,28 @@ class TracksDb(object):
         return None
 
 
-    def get_similar_tracks(self, seed, seed_genres, min_duration=0, max_duration=24*60*60):
+    # Vry high-confidence, and very low (so highly negative), attributes should be more significant.
+    @staticmethod
+    def attr_factors(track):
+        factors=[]
+        for attr in range(len(ESSENTIA_ATTRIBS)):
+            factor=1.0
+            if 'bpm'==ESSENTIA_ATTRIBS[attr]:
+                factors.append(1.0)
+            elif track[ESSENTIA_ATTRIBS[attr]]>=0.9 or track[ESSENTIA_ATTRIBS[attr]]<=0.1:
+                factors.append(1.0)
+            elif track[ESSENTIA_ATTRIBS[attr]]>=0.8 or track[ESSENTIA_ATTRIBS[attr]]<=0.2:
+                factors.append(0.6)
+            elif track[ESSENTIA_ATTRIBS[attr]]>=0.7 or track[ESSENTIA_ATTRIBS[attr]]<=0.3:
+                factors.append(0.3)
+            elif track[ESSENTIA_ATTRIBS[attr]]>=0.6 or track[ESSENTIA_ATTRIBS[attr]]<=0.4:
+                factors.append(0.15)
+            else:
+                factors.append(0.1)
+        return factors
+
+
+    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60):
         query = ''
         where = ''
         duration = ''
@@ -77,6 +98,8 @@ class TracksDb(object):
             rows = self.cursor.fetchall()
             _LOGGER.debug('All rows: %d' % len(rows))
 
+        factors = TracksDb.attr_factors(seed)
+
         entries=[]
         for row in rows:
             if row[0]==seed['file']:
@@ -88,22 +111,14 @@ class TracksDb(object):
             # Calculate similarity
             sim = 0.0
             for attr in range(len(ESSENTIA_ATTRIBS)):
-                factor=1.0
-                if 'bpm'==ESSENTIA_ATTRIBS[attr]:
-                    factor = 1.0
-                elif seed[ESSENTIA_ATTRIBS[attr]]>=0.9 or seed[ESSENTIA_ATTRIBS[attr]]<=0.1:
-                    factor = 0.7
-                elif seed[ESSENTIA_ATTRIBS[attr]]>=0.8 or seed[ESSENTIA_ATTRIBS[attr]]<=0.2:
-                    factor = 0.5
-                elif seed[ESSENTIA_ATTRIBS[attr]]>=0.7 or seed[ESSENTIA_ATTRIBS[attr]]<=0.3:
-                    factor = 0.3
-                elif seed[ESSENTIA_ATTRIBS[attr]]>=0.6 or seed[ESSENTIA_ATTRIBS[attr]]<=0.4:
-                    factor = 0.2
+                sim += (abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+5])/(seed[ESSENTIA_ATTRIBS[attr]]+0.00000001))*factors[attr]*ESSENTIA_ATTRIBS_WEIGHTS[attr]
 
-                sim += (abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+5])/(seed[ESSENTIA_ATTRIBS[attr]]+0.00000001))*factor*ESSENTIA_ATTRIBS_WEIGHTS[attr]
-
-            if seed_genres  is not None and 'genres' in entry and not entry['genres'][0] in seed_genres:
+            # If genre is not in seed's group, adjsut similarity...
+            if 'genres' in entry and \
+               ( (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
+                 (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres) ):
                 sim += 20
+
             entry['similarity']=sim
             entries.append(entry)
         # Sort entries by similarity, highest first
