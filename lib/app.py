@@ -61,6 +61,70 @@ def log_track(reason, track):
     _LOGGER.debug('%s Path:%s Similarity:%f Artist:%s Album:%s Genres:%s' % (reason, track['file'], track['similarity'], track['artist'], track['album'], str(track['genres'])))
 
 
+@essentia_app.route('/api/dump', methods=['GET', 'POST'])
+def dump_api():
+    isPost = False
+    if request.method=='GET':
+        params = request.args.to_dict(flat=False)
+    else:
+        isPost = True
+        params = request.get_json()
+        _LOGGER.debug('Request: %s' % json.dumps(params))
+
+    if not params:
+        abort(400)
+
+    if not 'track' in params:
+        abort(400)
+
+    if len(params['track'])!=1:
+        abort(400)
+
+    cfg = essentia_app.get_config()
+    db = tracks_db.TracksDb(cfg)
+
+    # Strip LMS root path from track path
+    root = cfg['lms']
+
+    track = decode(params['track'][0], root)
+    entry = db.get(track)
+    if entry is None:
+        abort(404)
+
+    seed_genres=[]
+    all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
+    if 'genres' in entry and 'genres' in cfg:
+        for genre in entry['genres']:
+            for group in cfg['genres']:
+                if genre in group:
+                    for cg in group:
+                        if not cg in seed_genres:
+                            seed_genres.append(cg)
+
+    txt = get_value(params, 'format', '', False)=='text'
+    tracks = db.get_similar_tracks(entry, seed_genres, all_genres, \
+                                   check_close=get_value(params, 'close', '0', isPost)=='1', \
+                                   use_weighting=get_value(params, 'weighting', '1', isPost)=='1', \
+                                   all_attribs=True)
+    count = int(get_value(params, 'count', 50000, isPost))
+    tracks = tracks[:count]
+    if not txt:
+        return json.dumps(tracks)
+
+    resp=[]
+    header = "file\tsimilarity"
+    for attr in tracks_db.ESSENTIA_ATTRIBS:
+        header+="\t%s" % attr
+    resp.append(header)
+    for track in tracks:
+        line="%s\t%f" % (track['file'], track['similarity'])
+        for attr in tracks_db.ESSENTIA_ATTRIBS:
+            line+="\t%f" % track[attr]
+        resp.append(line)
+
+    return '\n'.join(resp)
+
+
 @essentia_app.route('/api/similar', methods=['GET', 'POST'])
 def similar_api():
     isPost = False

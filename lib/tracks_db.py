@@ -55,7 +55,6 @@ class TracksDb(object):
     def attr_factors(track):
         factors=[]
         for attr in range(len(ESSENTIA_ATTRIBS)):
-            factor=1.0
             if 'bpm'==ESSENTIA_ATTRIBS[attr]:
                 factors.append(1.0)
             elif track[ESSENTIA_ATTRIBS[attr]]>=0.9 or track[ESSENTIA_ATTRIBS[attr]]<=0.1:
@@ -71,7 +70,7 @@ class TracksDb(object):
         return factors
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60):
+    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, check_close=True, use_weighting=True, all_attribs=False):
         query = ''
         where = ''
         duration = ''
@@ -89,9 +88,13 @@ class TracksDb(object):
                 max_duration = 24*60*60
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
         # Ty to get similar tracks using 'where'
-        self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist!="%s") %s' % (query, duration, seed['artist'], where))
-        rows = self.cursor.fetchall()
-        _LOGGER.debug('Close rows: %d' % len(rows))
+        if check_close:
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != "%s") %s' % (query, duration, seed['artist'], where))
+            rows = self.cursor.fetchall()
+            _LOGGER.debug('Close rows: %d' % len(rows))
+        else:
+            rows=[]
+
         if len(rows)<MIN_SIMILAR:
             # Too few (as we might filter), so just get all tracks...
             self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != "%s")' % (query, duration, seed['artist']))
@@ -111,7 +114,12 @@ class TracksDb(object):
             # Calculate similarity
             sim = 0.0
             for attr in range(len(ESSENTIA_ATTRIBS)):
-                sim += (abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+5])/(seed[ESSENTIA_ATTRIBS[attr]]+0.00000001))*factors[attr]*ESSENTIA_ATTRIBS_WEIGHTS[attr]
+                attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+5])/max(seed[ESSENTIA_ATTRIBS[attr]], 0.00000001)
+                if use_weighting:
+                    attr_sim*=factors[attr]*ESSENTIA_ATTRIBS_WEIGHTS[attr]
+                sim += attr_sim
+                if all_attribs:
+                    entry[ESSENTIA_ATTRIBS[attr]]=attr_sim
 
             # If genre is not in seed's group, adjsut similarity...
             if 'genres' in entry and \
