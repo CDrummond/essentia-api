@@ -101,25 +101,28 @@ def dump_api():
                         if not cg in seed_genres:
                             seed_genres.append(cg)
 
-    txt = get_value(params, 'format', '', False)=='text'
+    fmt = get_value(params, 'format', '', isPost)
     tracks = db.get_similar_tracks(entry, seed_genres, all_genres, \
                                    check_close=get_value(params, 'close', '0', isPost)=='1', \
                                    use_weighting=get_value(params, 'weighting', '1', isPost)=='1', \
                                    all_attribs=True)
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
-    if not txt:
+    if not fmt.startswith('text'):
         return json.dumps(tracks)
 
-    resp=[]
     header = "file\tsimilarity\tgenres"
-    for attr in tracks_db.ESSENTIA_ATTRIBS:
-        header+="\t%s" % attr
+
+    if fmt=='textall':
+        for attr in tracks_db.ESSENTIA_ATTRIBS:
+            header+="\t%s" % attr
+    resp=[]
     resp.append(header)
     for track in tracks:
         line="%s\t%f\t%s" % (track['file'], track['similarity'], track['genres'])
-        for attr in tracks_db.ESSENTIA_ATTRIBS:
-            line+="\t%f" % track[attr]
+        if fmt=='textall':
+            for attr in tracks_db.ESSENTIA_ATTRIBS:
+                line+="\t%f" % track[attr]
         resp.append(line)
 
     return '\n'.join(resp)
