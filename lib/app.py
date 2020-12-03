@@ -228,6 +228,8 @@ def similar_api():
 
     checked_files=[]
     similarity_count = int(count * SHUFFLE_FACTOR) if shuffle else count
+    # If only 1 seed track, get more tracks to shuffle to increase randomness
+    similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
     for seed in seed_track_db_entries:
         # Query DB for similar tracks
         resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration)
