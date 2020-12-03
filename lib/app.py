@@ -112,12 +112,12 @@ def dump_api():
         return json.dumps(tracks)
 
     resp=[]
-    header = "file\tsimilarity"
+    header = "file\tsimilarity\tgenres"
     for attr in tracks_db.ESSENTIA_ATTRIBS:
         header+="\t%s" % attr
     resp.append(header)
     for track in tracks:
-        line="%s\t%f" % (track['file'], track['similarity'])
+        line="%s\t%f\t%s" % (track['file'], track['similarity'], track['genres'])
         for attr in tracks_db.ESSENTIA_ATTRIBS:
             line+="\t%f" % track[attr]
         resp.append(line)
