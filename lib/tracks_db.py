@@ -93,9 +93,9 @@ class TracksDb(object):
         for attr in ESSENTIA_ATTRIBS:
             query+=', %s' % attr
             if 'bpm'==attr:
-                where+='and (%s between %d AND %d)' % (attr, seed[attr]-50, seed[attr]+50)
+                where+='and (%s between %d AND %d)' % (attr, seed[attr]-25, seed[attr]+25)
             else:
-                where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.3, seed[attr]+0.3)
+                where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.65, seed[attr]+0.65)
 
         if min_duration>0 or max_duration>0:
             if max_duration<=0:
