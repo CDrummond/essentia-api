@@ -12,7 +12,7 @@ import sqlite3
 
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS         = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
-ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.5,           0.5,        0.5,     0.5,     0.5,       0.5,   0.5,    0.5,     0.5,     0.5]
+ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.4,           0.4,        0.5,     0.6,     0.5,       0.5,   0.6,    0.5,     0.5,     0.75]
 MIN_SIMILAR = 100
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class TracksDb(object):
             elif track[ESSENTIA_ATTRIBS[attr]]>=0.7 or track[ESSENTIA_ATTRIBS[attr]]<=0.3:
                 factors.append(0.3)
             elif track[ESSENTIA_ATTRIBS[attr]]>=0.6 or track[ESSENTIA_ATTRIBS[attr]]<=0.4:
-                factors.append(0.15)
+                factors.append(0.125)
             else:
                 factors.append(0.1)
         return factors
@@ -73,15 +73,15 @@ class TracksDb(object):
     @staticmethod
     def genre_sim(seed, entry, seed_genres, all_genres):
         if 'genres' not in seed:
-            return 0.5
+            return 1.0
         if 'genres' not in entry:
-            return 0.5
+            return 1.0
         if seed['genres'][0]==entry['genres'][0]:
-            return 0.2
+            return 0.3
         if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
            (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
-            return 0.5
-        return 0.35
+            return 1.0
+        return 0.6
 
 
     def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, check_close=True, use_weighting=True, all_attribs=False):
@@ -103,7 +103,7 @@ class TracksDb(object):
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
         # Ty to get similar tracks using 'where'
         if check_close:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != "xx%s") %s' % (query, duration, seed['artist'], where))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != ?) %s' % (query, duration, where), (seed['artist'],))
             rows = self.cursor.fetchall()
             _LOGGER.debug('Close rows: %d' % len(rows))
         else:
@@ -111,7 +111,7 @@ class TracksDb(object):
 
         if len(rows)<MIN_SIMILAR:
             # Too few (as we might filter), so just get all tracks...
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != "xx%s")' % (query, duration, seed['artist']))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != ?)' % (query, duration), (seed['artist'],))
             rows = self.cursor.fetchall()
             _LOGGER.debug('All rows: %d' % len(rows))
 
@@ -139,7 +139,7 @@ class TracksDb(object):
                     entry[ESSENTIA_ATTRIBS[attr]]=attr_sim
 
             # Adjust similarity using genres
-            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres)
+            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres)*1.25
 
             entry['similarity'] = sim / (len(ESSENTIA_ATTRIBS)+1)
             entries.append(entry)
