@@ -6,6 +6,7 @@
 #
 
 import logging
+from urllib.parse import quote
 
 CUE_TRACK = '.CUE_TRACK.'
 _LOGGER = logging.getLogger(__name__)
