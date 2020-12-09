@@ -234,41 +234,45 @@ def similar_api():
     # If only 1 seed track, get more tracks to shuffle to increase randomness
     similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
     for seed in seed_track_db_entries:
-        # Query DB for similar tracks
-        resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration)
         accepted_tracks = 0
-        for track in resp:
-            if (not track['file'] in seed_files) and (not track['file'] in previous_files) and (not track['file'] in checked_files):
-                checked_files.append(track['file'])
+        
+        for check_close in [True, False]:
+            # Query DB for similar tracks
+            resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, check_close)
 
-                if match_genre and not filters.genre_matches(cfg, seed_genres, track):
-                    log_track('DISCARD(genre)', track)
-                elif exclude_christmas and filters.is_christmas(track):
-                    log_track('DISCARD(xmas)', track)
-                elif do_exclude_artists and filters.match_artist(exclude_artists, track):
-                    log_track('DISCARD(artist)', track)
-                elif do_exclude_albums and filters.match_album(exclude_albums, track):
-                    log_track('DISCARD(album)', track)
-                else:
-                    if filters.same_artist_or_album(seed_track_db_entries, track):
-                        log_track('FILTERED(seeds)', track)
-                        filtered_by_seeds_tracks.append(track)
-                    elif filters.same_artist_or_album(similar_tracks, track):
-                        log_track('FILTERED(current)', track)
-                        filtered_by_current_tracks.append(track)
-                    elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
-                        log_track('FILTERED(previous(artist))', track)
-                        filtered_by_previous_tracks.append(track)
-                    elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
-                        log_track('FILTERED(previous(album))', track)
-                        filtered_by_previous_tracks.append(track)
+            for track in resp:
+                if (not track['file'] in seed_files) and (not track['file'] in previous_files) and (not track['file'] in checked_files):
+                    checked_files.append(track['file'])
+
+                    if match_genre and not filters.genre_matches(cfg, seed_genres, track):
+                        log_track('DISCARD(genre)', track)
+                    elif exclude_christmas and filters.is_christmas(track):
+                        log_track('DISCARD(xmas)', track)
+                    elif do_exclude_artists and filters.match_artist(exclude_artists, track):
+                        log_track('DISCARD(artist)', track)
+                    elif do_exclude_albums and filters.match_album(exclude_albums, track):
+                        log_track('DISCARD(album)', track)
                     else:
-                        log_track('USABLE', track)
-                        similar_tracks.append(track)
-                        accepted_tracks += 1
-                        if accepted_tracks>=similarity_count:
-                            break
-
+                        if filters.same_artist_or_album(seed_track_db_entries, track):
+                            log_track('FILTERED(seeds)', track)
+                            filtered_by_seeds_tracks.append(track)
+                        elif filters.same_artist_or_album(similar_tracks, track):
+                            log_track('FILTERED(current)', track)
+                            filtered_by_current_tracks.append(track)
+                        elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
+                            log_track('FILTERED(previous(artist))', track)
+                            filtered_by_previous_tracks.append(track)
+                        elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
+                            log_track('FILTERED(previous(album))', track)
+                            filtered_by_previous_tracks.append(track)
+                        else:
+                            log_track('USABLE', track)
+                            similar_tracks.append(track)
+                            accepted_tracks += 1
+                            if accepted_tracks>=similarity_count:
+                                break
+            if accepted_tracks>=similarity_count:
+                break
     # Too few tracks? Add some from the filtered lists
     min_count = 2
     if len(similar_tracks)<min_count and len(filtered_by_previous_tracks)>0:

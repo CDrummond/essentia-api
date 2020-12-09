@@ -13,7 +13,6 @@ import sqlite3
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS         = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.4,           0.4,        0.5,     0.6,     0.5,       0.5,   0.6,    0.5,     0.5,     0.75]
-MIN_SIMILAR = 100
 _LOGGER = logging.getLogger(__name__)
 
     
@@ -93,9 +92,9 @@ class TracksDb(object):
         for attr in ESSENTIA_ATTRIBS:
             query+=', %s' % attr
             if 'bpm'==attr:
-                where+='and (%s between %d AND %d)' % (attr, seed[attr]-25, seed[attr]+25)
+                where+='and (%s between %d AND %d)' % (attr, seed[attr]-20, seed[attr]+20)
             else:
-                where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.65, seed[attr]+0.65)
+                where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.5, seed[attr]+0.5)
 
         if min_duration>0 or max_duration>0:
             if max_duration<=0:
@@ -107,9 +106,6 @@ class TracksDb(object):
             rows = self.cursor.fetchall()
             _LOGGER.debug('Close rows: %d' % len(rows))
         else:
-            rows=[]
-
-        if len(rows)<MIN_SIMILAR:
             # Too few (as we might filter), so just get all tracks...
             self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != ?)' % (query, duration), (seed['artist'],))
             rows = self.cursor.fetchall()
