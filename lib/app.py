@@ -170,11 +170,13 @@ def similar_api():
     filtered_by_current_tracks=[]
     filtered_by_previous_tracks=[]
 
+    # Set of rows from seeds/previous, and already checked items
+    skip_rows=[]
+
     if min_duration>0 or max_duration>0:
         _LOGGER.debug('Duration:%d .. %d' % (min_duration, max_duration))
 
     seed_track_db_entries=[]
-    seed_files=[]
     seed_genres=[]
     all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
     for trk in params['track']:
@@ -185,7 +187,7 @@ def similar_api():
         entry = db.get(track)
         if entry is not None:
             seed_track_db_entries.append(entry)
-            seed_files.append(track)
+            skip_rows.append(entry['rowid'])
             if 'genres' in entry and 'genres' in cfg:
                 for genre in entry['genres']:
                     for group in cfg['genres']:
@@ -196,7 +198,6 @@ def similar_api():
         else:
             _LOGGER.debug('Could not locate %s in DB' % track)
 
-    previous_files = []
     previous_track_db_entries = []
     if 'previous' in params:
         for trk in params['previous']:
@@ -205,9 +206,10 @@ def similar_api():
 
             entry = db.get(track)
             if entry is not None:
-                previous_files.append(track)
                 previous_track_db_entries.append(entry)
-        _LOGGER.debug('Have %d previous tracks to ignore' % len(previous_files))
+                if entry['rowid'] not in skip_rows:
+                    skip_rows.append(entry['rowid'])
+        _LOGGER.debug('Have %d previous tracks to ignore' % len(previous_track_db_entries))
 
     exclude_artists = []
     do_exclude_artists = False
@@ -229,20 +231,19 @@ def similar_api():
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
-    checked_files=[]
     similarity_count = int(count * SHUFFLE_FACTOR) if shuffle else count
     # If only 1 seed track, get more tracks to shuffle to increase randomness
     similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
     for seed in seed_track_db_entries:
         accepted_tracks = 0
-        
+
         for check_close in [True, False]:
             # Query DB for similar tracks
-            resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, check_close)
+            resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, check_close, skip_rows=skip_rows)
 
             for track in resp:
-                if (not track['file'] in seed_files) and (not track['file'] in previous_files) and (not track['file'] in checked_files):
-                    checked_files.append(track['file'])
+                if not track['rowid'] in skip_rows:
+                    skip_rows.append(track['rowid'])
 
                     if match_genre and not filters.genre_matches(cfg, seed_genres, track):
                         log_track('DISCARD(genre)', track)
@@ -273,6 +274,7 @@ def similar_api():
                                 break
             if accepted_tracks>=similarity_count:
                 break
+
     # Too few tracks? Add some from the filtered lists
     min_count = 2
     if len(similar_tracks)<min_count and len(filtered_by_previous_tracks)>0:

@@ -32,16 +32,14 @@ class TracksDb(object):
             query = ''
             for attr in ESSENTIA_ATTRIBS:
                 query+=', %s' % attr
-            self.cursor.execute('SELECT artist, album, albumartist, genre, duration %s FROM tracks WHERE file=?' % query, (path,))
+            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, rowid %s FROM tracks WHERE file=?' % query, (path,))
             row = self.cursor.fetchone()
             if row:
-                details = {'file':path, 'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4]}
+                details = {'file':path, 'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4], 'rowid':row[5]}
                 if row[3] and len(row[3])>0:
                     details['genres']=row[3].split(GENRE_SEPARATOR)
-                if row[5] is not None and row[5]==1:
-                    details['ignore']=True
                 for attr in range(len(ESSENTIA_ATTRIBS)):
-                    details[ESSENTIA_ATTRIBS[attr]] = row[attr+5]
+                    details[ESSENTIA_ATTRIBS[attr]] = row[attr+6]
                 return details
         except Exception as e:
             _LOGGER.error('Failed to read metadata - %s' % str(e))
@@ -83,12 +81,14 @@ class TracksDb(object):
         return 0.6
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, check_close=True, use_weighting=True, all_attribs=False):
+    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, check_close=True, skip_rows=[], use_weighting=True, all_attribs=False):
         query = ''
         where = ''
         duration = ''
+        skip = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
+
         for attr in ESSENTIA_ATTRIBS:
             query+=', %s' % attr
             if 'bpm'==attr:
@@ -96,28 +96,33 @@ class TracksDb(object):
             else:
                 where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.5, seed[attr]+0.5)
 
+        for row in skip_rows:
+            skip+='and rowid!=%d' % row
+
         if min_duration>0 or max_duration>0:
             if max_duration<=0:
                 max_duration = 24*60*60
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
-        # Ty to get similar tracks using 'where'
+
         if check_close:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != ?) %s' % (query, duration, where), (seed['artist'],))
+            # Ty to get similar tracks using 'where'
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid %s FROM tracks where (ignore != 1) %s %s and (artist != ?) %s' % (query, skip, duration, where), (seed['artist'],))
             rows = self.cursor.fetchall()
             _LOGGER.debug('Close rows: %d' % len(rows))
         else:
-            # Too few (as we might filter), so just get all tracks...
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre %s FROM tracks where (ignore != 1) %s and (artist != ?)' % (query, duration), (seed['artist'],))
+            # Get all tracks...
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid %s FROM tracks where (ignore != 1) %s %s and (artist != ?)' % (query, skip, duration), (seed['artist'],))
             rows = self.cursor.fetchall()
             _LOGGER.debug('All rows: %d' % len(rows))
 
         factors = TracksDb.attr_factors(seed)
 
         entries=[]
+        num_std_cols = 6
         for row in rows:
             if row[0]==seed['file']:
                 continue
-            entry = {'file':row[0], 'artist':row[1], 'album':row[2], 'albumartist':row[3]}
+            entry = {'file':row[0], 'artist':row[1], 'album':row[2], 'albumartist':row[3], 'rowid':row[5]}
             if row[4] and len(row[4])>0:
                 entry['genres'] = row[4].split(GENRE_SEPARATOR)
 
@@ -125,9 +130,9 @@ class TracksDb(object):
             sim = 0.0
             for attr in range(len(ESSENTIA_ATTRIBS)):
                 if 'bpm'==ESSENTIA_ATTRIBS[attr]:
-                    attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+5])/max(seed[ESSENTIA_ATTRIBS[attr]], 0.00000001)
+                    attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])/max(seed[ESSENTIA_ATTRIBS[attr]], 0.00000001)
                 else:
-                    attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+5])
+                    attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])
                 if use_weighting:
                     attr_sim*=factors[attr]*ESSENTIA_ATTRIBS_WEIGHTS[attr]
                 sim += attr_sim
