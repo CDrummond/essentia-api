@@ -96,8 +96,14 @@ class TracksDb(object):
             else:
                 where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.5, seed[attr]+0.5)
 
-        for row in skip_rows:
-            skip+='and rowid!=%d' % row
+        if skip_rows is not None and len(skip_rows)>0:
+            if 1==len(skip_rows):
+                skip='and rowid!=%d' % skip_rows[0]
+            else:
+                skip='and rowid not in ('
+                for row in sorted(skip_rows):
+                    skip+='%d,' % row
+                skip=skip[:-1]+')'
 
         if min_duration>0 or max_duration>0:
             if max_duration<=0:
