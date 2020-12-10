@@ -100,6 +100,7 @@ class TracksDb(object):
             if 1==len(skip_rows):
                 skip='and rowid!=%d' % skip_rows[0]
             else:
+                skip_rows = skip_rows[:250]
                 skip='and rowid not in ('
                 for row in sorted(skip_rows):
                     skip+='%d,' % row
