@@ -23,7 +23,7 @@ MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
 MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
 NUM_PREV_TRACKS_FILTER_ARTIST = 15 # Try to ensure artist is not in previous N tracks
 NUM_PREV_TRACKS_FILTER_ALBUM  = 25 # Try to ensure album is not in previous N tracks
-SHUFFLE_FACTOR                = 2  # How many tracks to shuffle?
+SHUFFLE_FACTOR                = 3  # How many (shuffle_factor_*count) tracks to shuffle?
 
 class EssentiaApp(Flask):
     def init(self, args, app_config):
@@ -232,8 +232,7 @@ def similar_api():
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
     similarity_count = int(count * SHUFFLE_FACTOR) if shuffle else count
-    # If only 1 seed track, get more tracks to shuffle to increase randomness
-    similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
+
     for seed in seed_track_db_entries:
         accepted_tracks = 0
 
