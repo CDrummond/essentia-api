@@ -24,7 +24,7 @@ MAX_TRACKS_TO_RETURN          = 50   # Max value for 'count' parameter
 NUM_PREV_TRACKS_FILTER_ARTIST = 15   # Try to ensure artist is not in previous N tracks
 NUM_PREV_TRACKS_FILTER_ALBUM  = 25   # Try to ensure album is not in previous N tracks
 SHUFFLE_FACTOR                = 4    # How many (shuffle_factor*count) tracks to shuffle?
-MAX_SIM                       = 0.3  # Maximum similarity factor of tracks
+MAX_SIM_RANGE                 = 0.3  # Maximum similarity rqnge between 1st track
 
 
 class EssentiaApp(Flask):
@@ -238,14 +238,19 @@ def similar_api():
 
     for seed in seed_track_db_entries:
         accepted_tracks = 0
+        first_sim = None
 
         for check_close in [True, False]:
             # Query DB for similar tracks
             resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, check_close, skip_rows=skip_rows, use_weighting=use_weighting)
 
             for track in resp:
-                if track['similarity']>MAX_SIM:
+                # Restrict similarity range
+                if first_sim is None:
+                    first_sim = track['similarity']
+                elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
                     break
+
                 if not track['rowid'] in skip_rows:
                     skip_rows.append(track['rowid'])
 
