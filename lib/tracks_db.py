@@ -13,6 +13,9 @@ import sqlite3
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS         = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.5,           0.5,        0.5,     0.5,     0.5,       0.5,   0.5,    0.5,     0.5,     0.75]
+MAX_SKIP_ROWS = 250
+DEFAULT_MAX_DURATION = 24*60*60 # 24hrs -> almost no max?
+GENRE_WEIGHTING = 1.25
 _LOGGER = logging.getLogger(__name__)
 
     
@@ -100,7 +103,7 @@ class TracksDb(object):
             if 1==len(skip_rows):
                 skip='and rowid!=%d' % skip_rows[0]
             else:
-                skip_rows = skip_rows[:250]
+                skip_rows = skip_rows[:MAX_SKIP_ROWS]
                 skip='and rowid not in ('
                 for row in sorted(skip_rows):
                     skip+='%d,' % row
@@ -108,7 +111,7 @@ class TracksDb(object):
 
         if min_duration>0 or max_duration>0:
             if max_duration<=0:
-                max_duration = 24*60*60
+                max_duration = DEFAULT_MAX_DURATION
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
 
         if check_close:
@@ -151,7 +154,7 @@ class TracksDb(object):
                     entry[ESSENTIA_ATTRIBS[attr]]=attr_sim
 
             # Adjust similarity using genres
-            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres)*1.25
+            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres) * GENRE_WEIGHTING
 
             entry['similarity'] = sim / (len(ESSENTIA_ATTRIBS)+1)
             entries.append(entry)
