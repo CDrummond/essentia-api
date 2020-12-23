@@ -12,7 +12,7 @@ import sqlite3
 
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS         = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
-ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.4,           0.4,        0.5,     0.6,     0.5,       0.5,   0.6,    0.5,     0.5,     0.75]
+ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.5,           0.5,        0.5,     0.5,     0.5,       0.5,   0.5,    0.5,     0.5,     0.75]
 _LOGGER = logging.getLogger(__name__)
 
     
@@ -140,8 +140,12 @@ class TracksDb(object):
                     attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])/max(seed[ESSENTIA_ATTRIBS[attr]], 0.00000001)
                 else:
                     attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])
-                if use_weighting:
+                if use_weighting==1:
                     attr_sim*=factors[attr]*ESSENTIA_ATTRIBS_WEIGHTS[attr]
+                elif use_weighting==2:
+                    attr_sim*=factors[attr]
+                elif use_weighting==3:
+                    attr_sim*=ESSENTIA_ATTRIBS_WEIGHTS[attr]
                 sim += attr_sim
                 if all_attribs:
                     entry[ESSENTIA_ATTRIBS[attr]]=attr_sim

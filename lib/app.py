@@ -104,7 +104,7 @@ def dump_api():
     fmt = get_value(params, 'format', '', isPost)
     tracks = db.get_similar_tracks(entry, seed_genres, all_genres, \
                                    check_close=get_value(params, 'close', '0', isPost)=='1', \
-                                   use_weighting=get_value(params, 'weighting', '0', isPost)=='1', \
+                                   use_weighting=int(get_value(params, 'weighting', '0', isPost)), \
                                    all_attribs=True)
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
@@ -156,7 +156,7 @@ def similar_api():
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
     exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
-    use_weighting = get_value(params, 'weighting', '0', isPost)=='1'
+    use_weighting = int(get_value(params, 'weighting', '0', isPost))
 
     cfg = essentia_app.get_config()
     db = tracks_db.TracksDb(cfg)
