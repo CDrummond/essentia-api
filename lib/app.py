@@ -236,6 +236,7 @@ def similar_api():
 
     similarity_count = int(count * SHUFFLE_FACTOR) if shuffle else count
 
+    matched_artists={}
     for seed in seed_track_db_entries:
         accepted_tracks = 0
         first_sim = None
@@ -269,6 +270,8 @@ def similar_api():
                         elif filters.same_artist_or_album(similar_tracks, track):
                             log_track('FILTERED(current)', track)
                             filtered_by_current_tracks.append(track)
+                            if track['artist'] in matched_artists and track['similarity'] - matched_artists[track['artist']]['similarity'] <= 0.1:
+                                matched_artists[track['artist']]['tracks'].append(track)
                         elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
                             log_track('FILTERED(previous(artist))', track)
                             filtered_by_previous_tracks.append(track)
@@ -278,11 +281,18 @@ def similar_api():
                         else:
                             log_track('USABLE', track)
                             similar_tracks.append(track)
+                            # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
+                            matched_artists[track['artist']]={'similarity':track['similarity'], 'tracks':[track], 'pos':len(similar_tracks)-1}
                             accepted_tracks += 1
                             if accepted_tracks>=similarity_count:
                                 break
             if accepted_tracks>=similarity_count:
                 break
+
+    # For each matched_artists randonly select a track...
+    for matched in matched_artists:
+        if len(matched_artists[matched]['tracks'])>1:
+            similar_tracks[matched_artists[matched]['pos']] = random.choice(matched_artists[matched]['tracks'])
 
     # Too few tracks? Add some from the filtered lists
     min_count = 2
