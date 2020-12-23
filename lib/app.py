@@ -18,12 +18,14 @@ from . import cue, filters, tracks_db
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_TRACKS_TO_RETURN      = 5  # Number of tracks to return, if none specified
-MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
-MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
-NUM_PREV_TRACKS_FILTER_ARTIST = 15 # Try to ensure artist is not in previous N tracks
-NUM_PREV_TRACKS_FILTER_ALBUM  = 25 # Try to ensure album is not in previous N tracks
-SHUFFLE_FACTOR                = 3  # How many (shuffle_factor*count) tracks to shuffle?
+DEFAULT_TRACKS_TO_RETURN      = 5    # Number of tracks to return, if none specified
+MIN_TRACKS_TO_RETURN          = 5    # Min value for 'count' parameter
+MAX_TRACKS_TO_RETURN          = 50   # Max value for 'count' parameter
+NUM_PREV_TRACKS_FILTER_ARTIST = 15   # Try to ensure artist is not in previous N tracks
+NUM_PREV_TRACKS_FILTER_ALBUM  = 25   # Try to ensure album is not in previous N tracks
+SHUFFLE_FACTOR                = 4    # How many (shuffle_factor*count) tracks to shuffle?
+MAX_SIM                       = 0.3  # Maximum similarity factor of tracks
+
 
 class EssentiaApp(Flask):
     def init(self, args, app_config):
@@ -242,6 +244,8 @@ def similar_api():
             resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, check_close, skip_rows=skip_rows, use_weighting=use_weighting)
 
             for track in resp:
+                if track['similarity']>MAX_SIM:
+                    break
                 if not track['rowid'] in skip_rows:
                     skip_rows.append(track['rowid'])
 
