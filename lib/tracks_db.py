@@ -6,6 +6,7 @@
 #
 
 import logging
+import math
 import os
 import sqlite3
 
@@ -50,7 +51,7 @@ class TracksDb(object):
         return None
 
 
-    # Vry high-confidence, and very low (so highly negative), attributes should be more significant.
+    # Very high-confidence, and very low (so highly negative), attributes should be more significant.
     @staticmethod
     def attr_factors(track):
         factors=[]
@@ -73,15 +74,15 @@ class TracksDb(object):
     @staticmethod
     def genre_sim(seed, entry, seed_genres, all_genres):
         if 'genres' not in seed:
-            return 1.0
+            return 0.7
         if 'genres' not in entry:
-            return 1.0
+            return 0.7
         if seed['genres'][0]==entry['genres'][0]:
             return 0.3
         if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
            (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
-            return 1.0
-        return 0.6
+            return 0.9
+        return 0.5
 
 
     def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, check_close=True, skip_rows=[], use_weighting=True, all_attribs=False):
@@ -138,6 +139,7 @@ class TracksDb(object):
 
             # Calculate similarity
             sim = 0.0
+
             for attr in range(len(ESSENTIA_ATTRIBS)):
                 if 'bpm'==ESSENTIA_ATTRIBS[attr]:
                     attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])/max(seed[ESSENTIA_ATTRIBS[attr]], 0.00000001)
@@ -149,14 +151,15 @@ class TracksDb(object):
                     attr_sim*=factors[attr]
                 elif use_weighting==3:
                     attr_sim*=ESSENTIA_ATTRIBS_WEIGHTS[attr]
-                sim += attr_sim
+
+                sim += attr_sim**2
                 if all_attribs:
                     entry[ESSENTIA_ATTRIBS[attr]]=attr_sim
 
             # Adjust similarity using genres
-            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres) * GENRE_WEIGHTING
+            sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres)* GENRE_WEIGHTING)**2
 
-            entry['similarity'] = sim / (len(ESSENTIA_ATTRIBS)+1)
+            entry['similarity'] = math.sqrt(sim)
             entries.append(entry)
 
         # Sort entries by similarity, most similar (lowest number) first

@@ -273,7 +273,7 @@ def similar_api():
                         elif filters.same_artist_or_album(similar_tracks, track):
                             log_track('FILTERED(current)', track)
                             filtered_by_current_tracks.append(track)
-                            if track['artist'] in matched_artists and track['similarity'] - matched_artists[track['artist']]['similarity'] <= 0.1:
+                            if track['artist'] in matched_artists and track['similarity'] - matched_artists[track['artist']]['similarity'] <= 0.25:
                                 matched_artists[track['artist']]['tracks'].append(track)
                         elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
                             log_track('FILTERED(previous(artist))', track)
