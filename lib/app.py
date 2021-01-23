@@ -121,7 +121,10 @@ def dump_api():
     resp=[]
     resp.append(header)
     for track in tracks:
-        line="%s\t%f\t%s" % (track['file'], track['similarity'], track['genres'])
+        if 'genres' in track:
+            line="%s\t%f\t%s" % (track['file'], track['similarity'], track['genres'])
+        else:
+            line="%s\t%f\tXXXXX" % (track['file'], track['similarity'])
         if fmt=='textall':
             for attr in tracks_db.ESSENTIA_ATTRIBS:
                 line+="\t%f" % track[attr]
