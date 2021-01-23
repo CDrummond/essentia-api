@@ -252,8 +252,8 @@ def similar_api():
                 # Restrict similarity range
                 if first_sim is None:
                     first_sim = track['similarity']
-                elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
-                    break
+                #elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
+                #    break
 
                 if not track['rowid'] in skip_rows:
                     skip_rows.append(track['rowid'])
