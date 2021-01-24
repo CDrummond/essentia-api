@@ -108,6 +108,7 @@ This has the following format:
   ["Dance", "Disco", "Hip-Hop", "Pop", "Pop/Folk", "Pop/Rock", "R&B", "Reggae", "Soul", "Trance"],
   ["Gothic Metal", "Heavy Metal", "Power Metal", "Progressive Metal", "Progressive Rock", "Symphonic Metal", "Symphonic Power Metal"]
  ],
+ "ignoregenre":["Artist"]
 }
 ```
 
@@ -116,6 +117,7 @@ server will remove this path from API calls, so that it can look up tracks in
 its database by their relative path.
 * `db` should contain the path to the Essentia DB containing the analysis results.
 * `genres` This is as described above.
+* `ignoregenre` List of artists where genre filtering (excluding christmas) should be ignored.
 * `port` This is the port number the API is accessible on.
 * `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on
 all interfaces on your network.
