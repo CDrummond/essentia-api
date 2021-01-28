@@ -9,14 +9,11 @@ import logging
 import math
 import os
 import sqlite3
-
+import time
 
 GENRE_SEPARATOR = ';'
-ESSENTIA_ATTRIBS         = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
-ESSENTIA_ATTRIBS_WEIGHTS = [1.0,         1.0,          0.5,           0.5,        0.5,     0.5,     0.5,       0.5,   0.5,    0.5,     0.5,     0.75]
-MAX_SKIP_ROWS = 250
+ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 DEFAULT_MAX_DURATION = 24*60*60 # 24hrs -> almost no max?
-GENRE_WEIGHTING = 1.25
 _LOGGER = logging.getLogger(__name__)
 
     
@@ -51,26 +48,6 @@ class TracksDb(object):
         return None
 
 
-    # Very high-confidence, and very low (so highly negative), attributes should be more significant.
-    @staticmethod
-    def attr_factors(track):
-        factors=[]
-        for attr in range(len(ESSENTIA_ATTRIBS)):
-            if 'bpm'==ESSENTIA_ATTRIBS[attr]:
-                factors.append(1.0)
-            elif track[ESSENTIA_ATTRIBS[attr]]>=0.9 or track[ESSENTIA_ATTRIBS[attr]]<=0.1:
-                factors.append(1.0)
-            elif track[ESSENTIA_ATTRIBS[attr]]>=0.8 or track[ESSENTIA_ATTRIBS[attr]]<=0.2:
-                factors.append(0.6)
-            elif track[ESSENTIA_ATTRIBS[attr]]>=0.7 or track[ESSENTIA_ATTRIBS[attr]]<=0.3:
-                factors.append(0.3)
-            elif track[ESSENTIA_ATTRIBS[attr]]>=0.6 or track[ESSENTIA_ATTRIBS[attr]]<=0.4:
-                factors.append(0.125)
-            else:
-                factors.append(0.1)
-        return factors
-
-
     @staticmethod
     def genre_sim(seed, entry, seed_genres, all_genres):
         if 'genres' not in seed:
@@ -78,28 +55,22 @@ class TracksDb(object):
         if 'genres' not in entry:
             return 0.7
         if seed['genres'][0]==entry['genres'][0]:
-            return 0.3
+            return 0.1
         if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
            (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
             return 0.9
-        return 0.5
+        return 0.3
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, check_close=True, skip_rows=[], use_weighting=True, all_attribs=False):
+    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[]):
         query = ''
-        where = ''
         duration = ''
         skip = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
-        for attr in ESSENTIA_ATTRIBS:
-            query+=', %s' % attr
-            if 'bpm'==attr:
-                where+='and (%s between %d AND %d)' % (attr, seed[attr]-50, seed[attr]+50)
-            else:
-                where+='and (%s between %f AND %f)' % (attr, seed[attr]-0.5, seed[attr]+0.5)
-
+        tstart = time.time_ns()
+        
         if skip_rows is not None and len(skip_rows)>0:
             if 1==len(skip_rows):
                 skip='and rowid!=%d' % skip_rows[0]
@@ -110,57 +81,38 @@ class TracksDb(object):
                     skip+='%d,' % row
                 skip=skip[:-1]+')'
 
+        for attr in ESSENTIA_ATTRIBS:
+            if 'bpm'==attr:
+                query+='( ((%d.0-bpm)/%d.0) * ((%d.0-bpm)/%d.0) )' % (seed[attr], seed[attr], seed[attr], seed[attr])
+            else:
+                query+='((%.20f-%s)*(%.20f-%s))+' % (seed[attr], attr, seed[attr], attr)
+
         if min_duration>0 or max_duration>0:
             if max_duration<=0:
                 max_duration = DEFAULT_MAX_DURATION
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
 
-        if check_close:
-            # Ty to get similar tracks using 'where'
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid %s FROM tracks where (ignore != 1) %s %s and (artist != ?) %s' % (query, skip, duration, where), (seed['artist'],))
-            rows = self.cursor.fetchall()
-            _LOGGER.debug('Close rows: %d' % len(rows))
-        else:
-            # Get all tracks...
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid %s FROM tracks where (ignore != 1) %s %s and (artist != ?)' % (query, skip, duration), (seed['artist'],))
-            rows = self.cursor.fetchall()
-            _LOGGER.debug('All rows: %d' % len(rows))
-
-        factors = TracksDb.attr_factors(seed)
-
+        # Get all tracks...
+        self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit 2500' % (query, skip, duration), (seed['file'], seed['artist'],))
+        rows = self.cursor.fetchall()
+        _LOGGER.debug('Returned rows:%d' % len(rows))
+        _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
         entries=[]
         num_std_cols = 6
         for row in rows:
-            if row[0]==seed['file']:
-                continue
             entry = {'file':row[0], 'artist':row[1], 'album':row[2], 'albumartist':row[3], 'rowid':row[5]}
             if row[4] and len(row[4])>0:
                 entry['genres'] = row[4].split(GENRE_SEPARATOR)
 
-            # Calculate similarity
-            sim = 0.0
-
-            for attr in range(len(ESSENTIA_ATTRIBS)):
-                if 'bpm'==ESSENTIA_ATTRIBS[attr]:
-                    attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])/max(seed[ESSENTIA_ATTRIBS[attr]], 0.00000001)
-                else:
-                    attr_sim = abs(seed[ESSENTIA_ATTRIBS[attr]]-row[attr+num_std_cols])
-                if use_weighting==1:
-                    attr_sim*=factors[attr]*ESSENTIA_ATTRIBS_WEIGHTS[attr]
-                elif use_weighting==2:
-                    attr_sim*=factors[attr]
-                elif use_weighting==3:
-                    attr_sim*=ESSENTIA_ATTRIBS_WEIGHTS[attr]
-
-                sim += attr_sim**2
-                if all_attribs:
-                    entry[ESSENTIA_ATTRIBS[attr]]=attr_sim
+            sim = row[len(row)-1]
 
             # Adjust similarity using genres
-            sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres)* GENRE_WEIGHTING)**2
+            sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres))**2
 
             entry['similarity'] = math.sqrt(sim)
             entries.append(entry)
 
         # Sort entries by similarity, most similar (lowest number) first
-        return sorted(entries, key=lambda k: k['similarity'])
+        vals = sorted(entries, key=lambda k: k['similarity'])
+        _LOGGER.debug('Total time:%d' % int((time.time_ns()-tstart)/1000000))
+        return vals;

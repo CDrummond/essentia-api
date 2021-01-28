@@ -104,10 +104,7 @@ def dump_api():
                             seed_genres.append(cg)
 
     fmt = get_value(params, 'format', '', isPost)
-    tracks = db.get_similar_tracks(entry, seed_genres, all_genres, \
-                                   check_close=get_value(params, 'close', '0', isPost)=='1', \
-                                   use_weighting=int(get_value(params, 'weighting', '0', isPost)), \
-                                   all_attribs=True)
+    tracks = db.get_similar_tracks(entry, seed_genres, all_genres)
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
     if not fmt.startswith('text'):
@@ -161,7 +158,6 @@ def similar_api():
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
     exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
-    use_weighting = int(get_value(params, 'weighting', '0', isPost))
 
     cfg = essentia_app.get_config()
     db = tracks_db.TracksDb(cfg)
@@ -244,53 +240,47 @@ def similar_api():
         accepted_tracks = 0
         first_sim = None
 
-        for check_close in [True, False]:
-            # Query DB for similar tracks
-            resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, check_close, skip_rows=skip_rows, use_weighting=use_weighting)
+        # Query DB for similar tracks
+        resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, skip_rows)
 
-            for track in resp:
-                # Restrict similarity range
-                if first_sim is None:
-                    first_sim = track['similarity']
-                #elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
-                #    break
+        for track in resp:
+            # Restrict similarity range
+            if first_sim is None:
+                first_sim = track['similarity']
+            #elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
+            #    break
 
-                if not track['rowid'] in skip_rows:
-                    skip_rows.append(track['rowid'])
-
-                    if match_genre and not filters.genre_matches(cfg, seed_genres, track):
-                        log_track('DISCARD(genre)', track)
-                    elif exclude_christmas and filters.is_christmas(track):
-                        log_track('DISCARD(xmas)', track)
-                    elif do_exclude_artists and filters.match_artist(exclude_artists, track):
-                        log_track('DISCARD(artist)', track)
-                    elif do_exclude_albums and filters.match_album(exclude_albums, track):
-                        log_track('DISCARD(album)', track)
-                    else:
-                        if filters.same_artist_or_album(seed_track_db_entries, track):
-                            log_track('FILTERED(seeds)', track)
-                            filtered_by_seeds_tracks.append(track)
-                        elif filters.same_artist_or_album(similar_tracks, track):
-                            log_track('FILTERED(current)', track)
-                            filtered_by_current_tracks.append(track)
-                            if track['artist'] in matched_artists and track['similarity'] - matched_artists[track['artist']]['similarity'] <= 0.25:
-                                matched_artists[track['artist']]['tracks'].append(track)
-                        elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
-                            log_track('FILTERED(previous(artist))', track)
-                            filtered_by_previous_tracks.append(track)
-                        elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
-                            log_track('FILTERED(previous(album))', track)
-                            filtered_by_previous_tracks.append(track)
-                        else:
-                            log_track('USABLE', track)
-                            similar_tracks.append(track)
-                            # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
-                            matched_artists[track['artist']]={'similarity':track['similarity'], 'tracks':[track], 'pos':len(similar_tracks)-1}
-                            accepted_tracks += 1
-                            if accepted_tracks>=similarity_count:
-                                break
-            if accepted_tracks>=similarity_count:
-                break
+            if match_genre and not filters.genre_matches(cfg, seed_genres, track):
+                log_track('DISCARD(genre)', track)
+            elif exclude_christmas and filters.is_christmas(track):
+                log_track('DISCARD(xmas)', track)
+            elif do_exclude_artists and filters.match_artist(exclude_artists, track):
+                log_track('DISCARD(artist)', track)
+            elif do_exclude_albums and filters.match_album(exclude_albums, track):
+                log_track('DISCARD(album)', track)
+            else:
+                if filters.same_artist_or_album(seed_track_db_entries, track):
+                    log_track('FILTERED(seeds)', track)
+                    filtered_by_seeds_tracks.append(track)
+                elif filters.same_artist_or_album(similar_tracks, track):
+                    log_track('FILTERED(current)', track)
+                    filtered_by_current_tracks.append(track)
+                    if track['artist'] in matched_artists and track['similarity'] - matched_artists[track['artist']]['similarity'] <= 0.25:
+                        matched_artists[track['artist']]['tracks'].append(track)
+                elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
+                    log_track('FILTERED(previous(artist))', track)
+                    filtered_by_previous_tracks.append(track)
+                elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
+                    log_track('FILTERED(previous(album))', track)
+                    filtered_by_previous_tracks.append(track)
+                else:
+                    log_track('USABLE', track)
+                    similar_tracks.append(track)
+                    # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
+                    matched_artists[track['artist']]={'similarity':track['similarity'], 'tracks':[track], 'pos':len(similar_tracks)-1}
+                    accepted_tracks += 1
+                    if accepted_tracks>=similarity_count:
+                        break
 
     # For each matched_artists randonly select a track...
     for matched in matched_artists:
