@@ -104,7 +104,10 @@ def dump_api():
                             seed_genres.append(cg)
 
     fmt = get_value(params, 'format', '', isPost)
-    tracks = db.get_similar_tracks(entry, seed_genres, all_genres, match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
+
+    tracks = db.get_similar_tracks(entry, seed_genres, all_genres, \
+                match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)), \
+                allow_same_artist=1==int(get_value(params, 'sameartist', '0', isPost)))
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
     if not fmt.startswith('text'):

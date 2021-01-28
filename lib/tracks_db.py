@@ -64,7 +64,7 @@ class TracksDb(object):
         return 0.3
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False):
+    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False, allow_same_artist=False):
         query = ''
         duration = ''
         skip = ''
@@ -95,7 +95,10 @@ class TracksDb(object):
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
 
         # Get all tracks...
-        self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit 2500' % (query, skip, duration), (seed['file'], seed['artist'],))
+        if allow_same_artist:
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s order by dist limit 2500' % (query, skip, duration), (seed['file'],))
+        else:
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit 2500' % (query, skip, duration), (seed['file'], seed['artist'],))
         rows = self.cursor.fetchall()
         _LOGGER.debug('Returned rows:%d' % len(rows))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
