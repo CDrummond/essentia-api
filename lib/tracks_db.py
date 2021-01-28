@@ -49,7 +49,9 @@ class TracksDb(object):
 
 
     @staticmethod
-    def genre_sim(seed, entry, seed_genres, all_genres):
+    def genre_sim(seed, entry, seed_genres, all_genres, match_all_genres=False):
+        if match_all_genres:
+            return 1.0
         if 'genres' not in seed:
             return 0.7
         if 'genres' not in entry:
@@ -62,7 +64,7 @@ class TracksDb(object):
         return 0.3
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[]):
+    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False):
         query = ''
         duration = ''
         skip = ''
@@ -70,7 +72,7 @@ class TracksDb(object):
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
         tstart = time.time_ns()
-        
+
         if skip_rows is not None and len(skip_rows)>0:
             if 1==len(skip_rows):
                 skip='and rowid!=%d' % skip_rows[0]
@@ -107,7 +109,7 @@ class TracksDb(object):
             sim = row[len(row)-1]
 
             # Adjust similarity using genres
-            sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres))**2
+            sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres))**2
 
             entry['similarity'] = math.sqrt(sim)
             entries.append(entry)

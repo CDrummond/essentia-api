@@ -104,7 +104,7 @@ def dump_api():
                             seed_genres.append(cg)
 
     fmt = get_value(params, 'format', '', isPost)
-    tracks = db.get_similar_tracks(entry, seed_genres, all_genres)
+    tracks = db.get_similar_tracks(entry, seed_genres, all_genres, match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
     if not fmt.startswith('text'):
@@ -239,9 +239,10 @@ def similar_api():
     for seed in seed_track_db_entries:
         accepted_tracks = 0
         first_sim = None
+        match_all_genres = ('ignoregenre' in config) and (seed['artist'] in config['ignoregenre'])
 
         # Query DB for similar tracks
-        resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, skip_rows)
+        resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, skip_rows, match_all_genres)
 
         for track in resp:
             # Restrict similarity range
