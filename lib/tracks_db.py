@@ -117,9 +117,14 @@ class TracksDb(object):
                     skip+='%d,' % row
                 skip=skip[:-1]+')'
 
+        self.cursor.execute('SELECT min(bpm), max(bpm) from tracks')
+        row = self.cursor.fetchone()
+        min_bpm = row[0]
+        max_bpm = row[1]
+
         for attr in ESSENTIA_ATTRIBS:
             if 'bpm'==attr:
-                query+='( ((%d.0-bpm)/%d.0) * ((%d.0-bpm)/%d.0) )' % (seed[attr], seed[attr], seed[attr], seed[attr])
+                query+='( ((bpm-%d.0)/%d.0)*((bpm-%d.0)/%d.0) )' % (min_bpm, max_bpm-min_bpm, min_bpm, max_bpm-min_bpm)
             else:
                 query+='((%.20f-%s)*(%.20f-%s))+' % (seed[attr], attr, seed[attr], attr)
 
