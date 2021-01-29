@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 def normalize_str(s):
     if not s:
         return s
-    s=s.lower().replace('.', '').replace('(', '').replace(')', '').replace(' & ', ' and ')
+    s=s.lower().replace('.', '').replace('(', '').replace(')', '').replace('[', '').replace(']', '').replace(' & ', ' and ')
     while '  ' in s:
         s=s.replace('  ', ' ')
     return s
