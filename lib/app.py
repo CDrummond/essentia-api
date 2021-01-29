@@ -221,7 +221,7 @@ def similar_api():
     exclude_key = 'excludeartist' if 'excludeartist' in params else 'exclude'
     if exclude_key in params:
         for artist in params[exclude_key]:
-            exclude_artists.append(artist.strip())
+            exclude_artists.append(tracks_db.normalize_artist(artist.strip()))
         do_exclude_artists = len(exclude_artists)>0
         _LOGGER.debug('Have %d artists to exclude %s' % (len(exclude_artists), exclude_artists))
 
@@ -229,7 +229,7 @@ def similar_api():
     do_exclude_albums = False
     if 'excludealbum' in params:
         for album in params['excludealbum']:
-            exclude_albums.append(album.strip())
+            exclude_albums.append(tracks_db.normalize_album(album.strip()))
         do_exclude_albums = len(exclude_albums)>0
         _LOGGER.debug('Have %d albums to exclude %s' % (len(exclude_albums), exclude_albums))
 
