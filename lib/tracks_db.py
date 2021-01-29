@@ -99,17 +99,17 @@ class TracksDb(object):
     @staticmethod
     def genre_sim(seed, entry, seed_genres, all_genres, match_all_genres=False):
         if match_all_genres:
-            return 1.0
+            return 0.1
         if 'genres' not in seed:
-            return 0.7
+            return 0.5
         if 'genres' not in entry:
-            return 0.7
+            return 0.5
         if seed['genres'][0]==entry['genres'][0]:
             return 0.1
         if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
            (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
-            return 0.9
-        return 0.3
+            return 0.7
+        return 0.2
 
 
     def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False, allow_same_artist=False):
