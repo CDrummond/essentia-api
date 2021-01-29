@@ -17,6 +17,39 @@ DEFAULT_MAX_DURATION = 24*60*60 # 24hrs -> almost no max?
 MAX_SKIP_ROWS = 200
 _LOGGER = logging.getLogger(__name__)
 
+
+def normalize_str(s):
+    if not s:
+        return s
+    s=s.lower().replace('.', '').replace('(', '').replace(')', '').replace(' & ', ' and ')
+    while '  ' in s:
+        s=s.replace('  ', ' ')
+    return s
+
+
+def normalize_album(album):
+    if not album:
+        return album
+    return normalize_str(album.replace(' (Anniversary Edition)', '') \
+                              .replace(' (Deluxe Edition)', '') \
+                              .replace(' (Expanded Edition)', '') \
+                              .replace(' (Extended Edition)', '') \
+                              .replace(' (Special Edition)', '') \
+                              .replace(' (Deluxe)', '') \
+                              .replace(' (Deluxe Version)', '') \
+                              .replace(' (Extended Deluxe)', '') \
+                              .replace(' (Super Deluxe)', '') \
+                              .replace(' (Re-Issue)', '') \
+                              .replace(' (Remastered)', '') \
+                              .replace(' (Remixed)', '') \
+                              .replace(' (Remixed And  Remastered)', ''))
+
+
+def normalize_artist(artist):
+    if not artist:
+        return artist
+    return normalize_str(artist).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
+
     
 class TracksDb(object):
     def __init__(self, config):
@@ -37,7 +70,7 @@ class TracksDb(object):
             self.cursor.execute('SELECT artist, album, albumartist, genre, duration, rowid %s FROM tracks WHERE file=?' % query, (path,))
             row = self.cursor.fetchone()
             if row:
-                details = {'file':path, 'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4], 'rowid':row[5]}
+                details = {'file':path, 'artist.orig':row[0], 'artist':normalize_artist(row[0]), 'album':normalize_album(row[1]), 'albumartist':normalize_artist(row[2]), 'duration':row[4], 'rowid':row[5]}
                 if row[3] and len(row[3])>0:
                     details['genres']=row[3].split(GENRE_SEPARATOR)
                 for attr in range(len(ESSENTIA_ATTRIBS)):
@@ -99,14 +132,14 @@ class TracksDb(object):
         if allow_same_artist:
             self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s order by dist limit 2500' % (query, skip, duration), (seed['file'],))
         else:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit 2500' % (query, skip, duration), (seed['file'], seed['artist'],))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit 2500' % (query, skip, duration), (seed['file'], seed['artist.orig'],))
         rows = self.cursor.fetchall()
         _LOGGER.debug('Returned rows:%d' % len(rows))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
         entries=[]
         num_std_cols = 6
         for row in rows:
-            entry = {'file':row[0], 'artist':row[1], 'album':row[2], 'albumartist':row[3], 'rowid':row[5]}
+            entry = {'file':row[0], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'rowid':row[5]}
             if row[4] and len(row[4])>0:
                 entry['genres'] = row[4].split(GENRE_SEPARATOR)
 
