@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 def normalize_str(s):
     if not s:
         return s
-    s=s.lower().replace('.', '').replace('(', '').replace(')', '').replace('[', '').replace(']', '').replace(' & ', ' and ')
+    s=s.replace('.', '').replace('(', '').replace(')', '').replace('[', '').replace(']', '').replace(' & ', ' and ')
     while '  ' in s:
         s=s.replace('  ', ' ')
     return s
@@ -30,25 +30,25 @@ def normalize_str(s):
 def normalize_album(album):
     if not album:
         return album
-    return normalize_str(album.replace(' (Anniversary Edition)', '') \
-                              .replace(' (Deluxe Edition)', '') \
-                              .replace(' (Expanded Edition)', '') \
-                              .replace(' (Extended Edition)', '') \
-                              .replace(' (Special Edition)', '') \
-                              .replace(' (Deluxe)', '') \
-                              .replace(' (Deluxe Version)', '') \
-                              .replace(' (Extended Deluxe)', '') \
-                              .replace(' (Super Deluxe)', '') \
-                              .replace(' (Re-Issue)', '') \
-                              .replace(' (Remastered)', '') \
-                              .replace(' (Remixed)', '') \
-                              .replace(' (Remixed And  Remastered)', ''))
+    return normalize_str(album.lower().replace(' (anniversary edition)', '') \
+                                      .replace(' (deluxe edition)', '') \
+                                      .replace(' (expanded edition)', '') \
+                                      .replace(' (extended edition)', '') \
+                                      .replace(' (special edition)', '') \
+                                      .replace(' (deluxe)', '') \
+                                      .replace(' (deluxe version)', '') \
+                                      .replace(' (extended deluxe)', '') \
+                                      .replace(' (super deluxe)', '') \
+                                      .replace(' (re-issue)', '') \
+                                      .replace(' (remastered)', '') \
+                                      .replace(' (remixed)', '') \
+                                      .replace(' (remixed and remastered)', ''))
 
 
 def normalize_artist(artist):
     if not artist:
         return artist
-    return normalize_str(artist).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
+    return normalize_str(artist.lower()).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
 
     
 class TracksDb(object):
