@@ -106,6 +106,7 @@ class TracksDb(object):
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
         tstart = time.time_ns()
+        max_sim = math.sqrt(len(ESSENTIA_ATTRIBS)+1)
 
         if skip_rows is not None and len(skip_rows)>0:
             if 1==len(skip_rows):
@@ -153,7 +154,7 @@ class TracksDb(object):
             # Adjust similarity using genres
             sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres))**2
 
-            entry['similarity'] = math.sqrt(sim)
+            entry['similarity'] = math.sqrt(sim)/max_sim
             entries.append(entry)
 
         # Sort entries by similarity, most similar (lowest number) first
