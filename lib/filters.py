@@ -70,6 +70,13 @@ def match_album(albums, track):
     return album in albums
 
 
+def match_title(titles, track):
+    if not 'title' in track:
+        return False
+
+    return track['title'] in titles
+
+
 def check_duration(min_duration, max_duration, meta):
     if 'duration' not in meta or meta['duration'] is None or meta['duration']<=0:
         return True # No duration to check!

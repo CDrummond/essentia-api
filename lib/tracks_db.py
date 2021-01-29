@@ -16,6 +16,8 @@ ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy'
 DEFAULT_MAX_DURATION = 24*60*60 # 24hrs -> almost no max?
 MAX_SKIP_ROWS = 200
 _LOGGER = logging.getLogger(__name__)
+ALBUM_REMOVALS = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
+TITLE_REMOVALS = ['demo', 'demo version', 'radio edit', 'remastered', 'session version', 'live', 'live acoustic', 'acoustic', 'industrial remix', 'alternative version', 'alternate version', 'original mix', 'bonus track', 're-recording', 'alternate']
 
 
 def normalize_str(s):
@@ -30,19 +32,10 @@ def normalize_str(s):
 def normalize_album(album):
     if not album:
         return album
-    return normalize_str(album.lower().replace(' (anniversary edition)', '') \
-                                      .replace(' (deluxe edition)', '') \
-                                      .replace(' (expanded edition)', '') \
-                                      .replace(' (extended edition)', '') \
-                                      .replace(' (special edition)', '') \
-                                      .replace(' (deluxe)', '') \
-                                      .replace(' (deluxe version)', '') \
-                                      .replace(' (extended deluxe)', '') \
-                                      .replace(' (super deluxe)', '') \
-                                      .replace(' (re-issue)', '') \
-                                      .replace(' (remastered)', '') \
-                                      .replace(' (remixed)', '') \
-                                      .replace(' (remixed and remastered)', ''))
+    s = album.lower()
+    for r in ALBUM_REMOVALS:
+        s=s.replace(' (%s)' % r, '')
+    return normalize_str(s)
 
 
 def normalize_artist(artist):
@@ -50,7 +43,16 @@ def normalize_artist(artist):
         return artist
     return normalize_str(artist.lower()).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
 
-    
+
+def normalize_title(title):
+    if not title:
+        return title
+    s = title.lower()
+    for r in TITLE_REMOVALS:
+        s=s.replace(' (%s)' % r, '')
+    return normalize_str(s)
+
+
 class TracksDb(object):
     def __init__(self, config):
         self.conn = sqlite3.connect(config['db'])
@@ -62,12 +64,13 @@ class TracksDb(object):
         self.conn.close()
 
                 
-    def get(self, path):
+    def read_entry(self, path, withTitle):
         try:
             query = ''
+            titleQ = ', title' if withTitle else ''
             for attr in ESSENTIA_ATTRIBS:
                 query+=', %s' % attr
-            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, rowid %s FROM tracks WHERE file=?' % query, (path,))
+            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, rowid %s %s FROM tracks WHERE file=?' % (query, titleQ), (path,))
             row = self.cursor.fetchone()
             if row:
                 details = {'file':path, 'artist.orig':row[0], 'artist':normalize_artist(row[0]), 'album':normalize_album(row[1]), 'albumartist':normalize_artist(row[2]), 'duration':row[4], 'rowid':row[5]}
@@ -75,11 +78,22 @@ class TracksDb(object):
                     details['genres']=row[3].split(GENRE_SEPARATOR)
                 for attr in range(len(ESSENTIA_ATTRIBS)):
                     details[ESSENTIA_ATTRIBS[attr]] = row[attr+6]
+                if withTitle:
+                    details['title']=row[len(row)-1]
                 return details
         except Exception as e:
             _LOGGER.error('Failed to read metadata - %s' % str(e))
             pass
         return None
+
+
+    def get(self, path):
+        meta = self.read_entry(path, True)
+        if meta is None:
+            meta = self.read_entry(path, False)
+        if meta is None:
+            _LOGGER.error('Failed to read metadata')
+        return meta
 
 
     @staticmethod

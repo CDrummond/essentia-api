@@ -174,6 +174,7 @@ def similar_api():
     filtered_by_seeds_tracks=[]
     filtered_by_current_tracks=[]
     filtered_by_previous_tracks=[]
+    current_titles=[]
 
     # Set of rows from seeds/previous, and already checked items
     skip_rows=[]
@@ -200,6 +201,8 @@ def similar_api():
                             for cg in group:
                                 if not cg in seed_genres:
                                     seed_genres.append(cg)
+            if 'title' in entry:
+                current_titles.append(entry['title'])
         else:
             _LOGGER.debug('Could not locate %s in DB' % track)
 
@@ -214,6 +217,8 @@ def similar_api():
                 previous_track_db_entries.append(entry)
                 if entry['rowid'] not in skip_rows:
                     skip_rows.append(entry['rowid'])
+                if 'title' in entry:
+                    current_titles.append(entry['title'])
         _LOGGER.debug('Have %d previous tracks to ignore' % len(previous_track_db_entries))
 
     exclude_artists = []
@@ -277,11 +282,16 @@ def similar_api():
                 elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
                     log_track('FILTERED(previous(album))', track)
                     filtered_by_previous_tracks.append(track)
+                elif filters.match_title(current_titles, track):
+                    log_track('FILTERED(title)', track)
+                    filtered_by_previous_tracks.append(track)
                 else:
                     log_track('USABLE', track)
                     similar_tracks.append(track)
                     # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
                     matched_artists[track['artist']]={'similarity':track['similarity'], 'tracks':[track], 'pos':len(similar_tracks)-1}
+                    if 'title' in track:
+                        current_titles.append(track['title'])
                     accepted_tracks += 1
                     if accepted_tracks>=similarity_count:
                         break
