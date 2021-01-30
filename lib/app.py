@@ -24,7 +24,6 @@ MAX_TRACKS_TO_RETURN          = 50   # Max value for 'count' parameter
 NUM_PREV_TRACKS_FILTER_ARTIST = 15   # Try to ensure artist is not in previous N tracks
 NUM_PREV_TRACKS_FILTER_ALBUM  = 25   # Try to ensure album is not in previous N tracks
 SHUFFLE_FACTOR                = 4    # How many (shuffle_factor*count) tracks to shuffle?
-MAX_SIM_RANGE                 = 0.5  # Maximum similarity range between 1st similar track and rest
 
 
 class EssentiaApp(Flask):
@@ -245,19 +244,12 @@ def similar_api():
     matched_artists={}
     for seed in seed_track_db_entries:
         accepted_tracks = 0
-        first_sim = None
         match_all_genres = ('ignoregenre' in cfg) and ('*'==cfg['ignoregenre'] or (seed['artist.orig'] in cfg['ignoregenre']))
 
         # Query DB for similar tracks
         resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, skip_rows, match_all_genres)
 
         for track in resp:
-            # Restrict similarity range
-            if first_sim is None:
-                first_sim = track['similarity']
-            elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
-                break
-
             if match_genre and not match_all_genres and not filters.genre_matches(cfg, seed_genres, track):
                 log_track('DISCARD(genre)', track)
             elif exclude_christmas and filters.is_christmas(track):
