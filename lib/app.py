@@ -247,7 +247,7 @@ def similar_api():
     for seed in seed_track_db_entries:
         accepted_tracks = 0
         first_sim = None
-        match_all_genres = ('ignoregenre' in cfg) and ('*'==cfg['ignoregenre'] or (seed['artist'] in cfg['ignoregenre']))
+        match_all_genres = ('ignoregenre' in cfg) and ('*'==cfg['ignoregenre'] or (seed['artist.orig'] in cfg['ignoregenre']))
 
         # Query DB for similar tracks
         resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, skip_rows, match_all_genres)
