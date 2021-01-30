@@ -13,7 +13,6 @@ import time
 
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
-DEFAULT_MAX_DURATION = 24*60*60 # 24hrs -> almost no max?
 MAX_SKIP_ROWS = 200
 _LOGGER = logging.getLogger(__name__)
 ALBUM_REMOVALS = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
@@ -143,10 +142,12 @@ class TracksDb(object):
             else:
                 query+='((%.20f-%s)*(%.20f-%s))+' % (seed[attr], attr, seed[attr], attr)
 
-        if min_duration>0 or max_duration>0:
-            if max_duration<=0:
-                max_duration = DEFAULT_MAX_DURATION
+        if max_duration>0 and min_duration>0 and max_duration>min_duration:
             duration = 'and (duration between %d AND %d)' % (min_duration, max_duration)
+        elif min_duration>0:
+            duration = 'and duration >= %d' % min_duration
+        elif max_duration>0:
+            duration = 'and duration <= %d' % max_duration
 
         # Get all tracks...
         if allow_same_artist:
