@@ -259,7 +259,7 @@ def similar_api():
             #elif (track['similarity']-first_sim) > MAX_SIM_RANGE:
             #    break
 
-            if match_genre and not filters.genre_matches(cfg, seed_genres, track):
+            if match_genre and not match_all_genres and not filters.genre_matches(cfg, seed_genres, track):
                 log_track('DISCARD(genre)', track)
             elif exclude_christmas and filters.is_christmas(track):
                 log_track('DISCARD(xmas)', track)
