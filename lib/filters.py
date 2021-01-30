@@ -5,7 +5,7 @@
 # GPLv3 license.
 #
 
-VARIOUS_ARTISTS = ['Various', 'Various Artists']
+VARIOUS_ARTISTS = ['various', 'various artists'] # Artist names are normalised, and coverted to lower case
 CHRISTMAS_GENRES = ['Christmas', 'Xmas']
 
 def same_artist_or_album(seeds, track, check_album_only=False, max_check=0):
