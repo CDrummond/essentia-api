@@ -11,6 +11,7 @@ import os
 import sqlite3
 import time
 
+
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 MAX_SKIP_ROWS = 200

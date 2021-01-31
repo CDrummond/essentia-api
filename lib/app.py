@@ -17,6 +17,7 @@ import urllib
 from flask import Flask, abort, request
 from . import cue, filters, tracks_db
 
+
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_TRACKS_TO_RETURN      = 5    # Number of tracks to return, if none specified
@@ -31,7 +32,7 @@ class EssentiaApp(Flask):
     def init(self, args, app_config):
         _LOGGER.debug('Start server')
         self.app_config = app_config
-        
+
         flask_logging = logging.getLogger('werkzeug')
         flask_logging.setLevel(args.log_level)
         flask_logging.disabled = 'DEBUG'!=args.log_level
