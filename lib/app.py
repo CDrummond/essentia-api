@@ -12,6 +12,7 @@ import logging
 import os
 import random
 import sqlite3
+import time
 import urllib
 from flask import Flask, abort, request
 from . import cue, filters, tracks_db
@@ -134,6 +135,7 @@ def dump_api():
 
 @essentia_app.route('/api/similar', methods=['GET', 'POST'])
 def similar_api():
+    tstart = time.time_ns()
     isPost = False
     if request.method=='GET':
         params = request.args.to_dict(flat=False)
@@ -328,6 +330,7 @@ def similar_api():
         _LOGGER.debug('Path:%s %f' % (path, track['similarity']))
 
     db.close()
+    _LOGGER.debug('Total time:%d' % int((time.time_ns()-tstart)/1000000))
     if get_value(params, 'format', '', isPost)=='text':
         return '\n'.join(track_list)
     else:

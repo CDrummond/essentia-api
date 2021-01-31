@@ -14,6 +14,7 @@ import time
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 MAX_SKIP_ROWS = 200
+MAX_SQL_ROWS = 1500
 _LOGGER = logging.getLogger(__name__)
 ALBUM_REMOVALS = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
 TITLE_REMOVALS = ['demo', 'demo version', 'radio edit', 'remastered', 'session version', 'live', 'live acoustic', 'acoustic', 'industrial remix', 'alternative version', 'alternate version', 'original mix', 'bonus track', 're-recording', 'alternate']
@@ -62,7 +63,7 @@ class TracksDb(object):
         self.cursor.close()
         self.conn.close()
 
-                
+
     def read_entry(self, path, withTitle):
         try:
             query = ''
@@ -151,12 +152,13 @@ class TracksDb(object):
 
         # Get all tracks...
         if allow_same_artist:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s order by dist limit 2500' % (query, skip, duration), (seed['file'],))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS), (seed['file'],))
         else:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit 2500' % (query, skip, duration), (seed['file'], seed['artist.orig'],))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS), (seed['file'], seed['artist.orig'],))
         rows = self.cursor.fetchall()
         _LOGGER.debug('Returned rows:%d' % len(rows))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
+        tstart = time.time_ns()
         entries=[]
         num_std_cols = 6
         for row in rows:
@@ -174,5 +176,5 @@ class TracksDb(object):
 
         # Sort entries by similarity, most similar (lowest number) first
         vals = sorted(entries, key=lambda k: k['similarity'])
-        _LOGGER.debug('Total time:%d' % int((time.time_ns()-tstart)/1000000))
+        _LOGGER.debug('Processing time:%d' % int((time.time_ns()-tstart)/1000000))
         return vals;
