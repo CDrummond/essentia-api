@@ -56,7 +56,7 @@ def normalize_title(title):
 
 class TracksDb(object):
     def __init__(self, config):
-        self.conn = sqlite3.connect(config['db'])
+        self.conn = sqlite3.connect('file:%s?immutable=1&nolock=1&mode=ro' % config['db'], uri=True)
         self.cursor = self.conn.cursor()
 
 
