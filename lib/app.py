@@ -297,7 +297,9 @@ def similar_api():
     for matched in matched_artists:
         if len(matched_artists[matched]['tracks'])>1:
             _LOGGER.debug('Choosing random track for %s (%d tracks)' % (matched, len(matched_artists[matched]['tracks'])))
+            sim = similar_tracks[matched_artists[matched]['pos']]['similarity']
             similar_tracks[matched_artists[matched]['pos']] = random.choice(matched_artists[matched]['tracks'])
+            similar_tracks[matched_artists[matched]['pos']]['similarity'] = sim
 
     # Too few tracks? Add some from the filtered lists
     min_count = 2
