@@ -64,36 +64,24 @@ class TracksDb(object):
         self.conn.close()
 
 
-    def read_entry(self, path, withTitle):
+    def get(self, path):
         try:
             query = ''
-            titleQ = ', title' if withTitle else ''
             for attr in ESSENTIA_ATTRIBS:
                 query+=', %s' % attr
-            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, rowid %s %s FROM tracks WHERE file=?' % (query, titleQ), (path,))
+            self.cursor.execute('SELECT title, artist, album, albumartist, genre, duration, rowid %s FROM tracks WHERE file=?' % query, (path,))
             row = self.cursor.fetchone()
             if row:
-                details = {'file':path, 'artist.orig':row[0], 'artist':normalize_artist(row[0]), 'album':normalize_album(row[1]), 'albumartist':normalize_artist(row[2]), 'duration':row[4], 'rowid':row[5]}
+                details = {'file':path, 'title':normalize_title(row[0]), 'artist.orig':row[1], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'duration':row[5], 'rowid':row[6]}
                 if row[3] and len(row[3])>0:
                     details['genres']=row[3].split(GENRE_SEPARATOR)
                 for attr in range(len(ESSENTIA_ATTRIBS)):
-                    details[ESSENTIA_ATTRIBS[attr]] = row[attr+6]
-                if withTitle:
-                    details['title']=row[len(row)-1]
+                    details[ESSENTIA_ATTRIBS[attr]] = row[attr+7]
                 return details
         except Exception as e:
             _LOGGER.error('Failed to read metadata - %s' % str(e))
             pass
         return None
-
-
-    def get(self, path):
-        meta = self.read_entry(path, True)
-        if meta is None:
-            meta = self.read_entry(path, False)
-        if meta is None:
-            _LOGGER.error('Failed to read metadata')
-        return meta
 
 
     @staticmethod
@@ -145,15 +133,15 @@ class TracksDb(object):
 
         # Get all tracks...
         if allow_same_artist:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s order by dist limit %d' % (query, duration, MAX_SQL_ROWS))
+            self.cursor.execute('SELECT file, title, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s order by dist limit %d' % (query, duration, MAX_SQL_ROWS))
         else:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s and (artist != ?) order by dist limit %d' % (query, duration, MAX_SQL_ROWS), (seed['artist.orig'],))
+            self.cursor.execute('SELECT file, title, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s and (artist != ?) order by dist limit %d' % (query, duration, MAX_SQL_ROWS), (seed['artist.orig'],))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
         tstart = time.time_ns()
         entries=[]
         num_std_cols = 6
         for row in self.cursor:
-            entry = {'file':row[0], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'rowid':row[5]}
+            entry = {'file':row[0], 'title':normalize_title(row[1]), 'artist':normalize_artist(row[2]), 'album':normalize_album(row[3]), 'albumartist':normalize_artist(row[4]), 'rowid':row[6]}
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
 
