@@ -14,7 +14,6 @@ import time
 
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
-MAX_SKIP_ROWS = 200
 MAX_SQL_ROWS = 1500
 _LOGGER = logging.getLogger(__name__)
 ALBUM_REMOVALS = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
@@ -116,22 +115,11 @@ class TracksDb(object):
     def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False, allow_same_artist=False):
         query = ''
         duration = ''
-        skip = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
         tstart = time.time_ns()
         max_sim = math.sqrt(len(ESSENTIA_ATTRIBS)+1)
-
-        if skip_rows is None or len(skip_rows)==0:
-            skip='and rowid!=%d' % seed['rowid']
-        else:
-            skip_rows = skip_rows[:MAX_SKIP_ROWS-1]
-            skip='and rowid not in ('
-            skip+='%d,' % seed['rowid']
-            for row in sorted(skip_rows):
-                skip+='%d,' % row
-            skip=skip[:-1]+')'
 
         self.cursor.execute('SELECT min(bpm), max(bpm) from tracks')
         row = self.cursor.fetchone()
@@ -153,9 +141,9 @@ class TracksDb(object):
 
         # Get all tracks...
         if allow_same_artist:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s %s order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s order by dist limit %d' % (query, duration, MAX_SQL_ROWS))
         else:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s %s and (artist != ?) order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS), (seed['artist.orig'],))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s and (artist != ?) order by dist limit %d' % (query, duration, MAX_SQL_ROWS), (seed['artist.orig'],))
         rows = self.cursor.fetchall()
         _LOGGER.debug('Returned rows:%d' % len(rows))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
@@ -164,6 +152,9 @@ class TracksDb(object):
         num_std_cols = 6
         for row in rows:
             entry = {'file':row[0], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'rowid':row[5]}
+            if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
+                continue
+
             if row[4] and len(row[4])>0:
                 entry['genres'] = row[4].split(GENRE_SEPARATOR)
 
