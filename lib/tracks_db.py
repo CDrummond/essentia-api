@@ -123,15 +123,15 @@ class TracksDb(object):
         tstart = time.time_ns()
         max_sim = math.sqrt(len(ESSENTIA_ATTRIBS)+1)
 
-        if skip_rows is not None and len(skip_rows)>0:
-            if 1==len(skip_rows):
-                skip='and rowid!=%d' % skip_rows[0]
-            else:
-                skip_rows = skip_rows[:MAX_SKIP_ROWS]
-                skip='and rowid not in ('
-                for row in sorted(skip_rows):
-                    skip+='%d,' % row
-                skip=skip[:-1]+')'
+        if skip_rows is None or len(skip_rows)==0:
+            skip='and rowid!=%d' % seed['rowid']
+        else:
+            skip_rows = skip_rows[:MAX_SKIP_ROWS-1]
+            skip='and rowid not in ('
+            skip+='%d,' % seed['rowid']
+            for row in sorted(skip_rows):
+                skip+='%d,' % row
+            skip=skip[:-1]+')'
 
         self.cursor.execute('SELECT min(bpm), max(bpm) from tracks')
         row = self.cursor.fetchone()
@@ -153,9 +153,9 @@ class TracksDb(object):
 
         # Get all tracks...
         if allow_same_artist:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS), (seed['file'],))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s %s order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS))
         else:
-            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) and (file != ?) %s %s and (artist != ?) order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS), (seed['file'], seed['artist.orig'],))
+            self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s %s and (artist != ?) order by dist limit %d' % (query, skip, duration, MAX_SQL_ROWS), (seed['artist.orig'],))
         rows = self.cursor.fetchall()
         _LOGGER.debug('Returned rows:%d' % len(rows))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
