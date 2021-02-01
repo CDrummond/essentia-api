@@ -139,7 +139,6 @@ class TracksDb(object):
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
         tstart = time.time_ns()
         entries=[]
-        num_std_cols = 6
         for row in self.cursor:
             entry = {'file':row[0], 'title':normalize_title(row[1]), 'artist':normalize_artist(row[2]), 'album':normalize_album(row[3]), 'albumartist':normalize_artist(row[4]), 'rowid':row[6]}
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
