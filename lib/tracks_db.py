@@ -148,13 +148,11 @@ class TracksDb(object):
             self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s order by dist limit %d' % (query, duration, MAX_SQL_ROWS))
         else:
             self.cursor.execute('SELECT file, artist, album, albumartist, genre, rowid, (%s) as dist FROM tracks where (ignore != 1) %s and (artist != ?) order by dist limit %d' % (query, duration, MAX_SQL_ROWS), (seed['artist.orig'],))
-        rows = self.cursor.fetchall()
-        _LOGGER.debug('Returned rows:%d' % len(rows))
         _LOGGER.debug('Query time:%d' % int((time.time_ns()-tstart)/1000000))
         tstart = time.time_ns()
         entries=[]
         num_std_cols = 6
-        for row in rows:
+        for row in self.cursor:
             entry = {'file':row[0], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'rowid':row[5]}
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
