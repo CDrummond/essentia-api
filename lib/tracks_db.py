@@ -112,6 +112,10 @@ class TracksDb(object):
         return 0.2
 
 
+    min_bpm = None
+    bpm_range = None
+    max_sim = math.sqrt(len(ESSENTIA_ATTRIBS)+1)
+
     def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False, allow_same_artist=False):
         query = ''
         duration = ''
@@ -119,16 +123,16 @@ class TracksDb(object):
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
         tstart = time.time_ns()
-        max_sim = math.sqrt(len(ESSENTIA_ATTRIBS)+1)
 
-        self.cursor.execute('SELECT min(bpm), max(bpm) from tracks')
-        row = self.cursor.fetchone()
-        min_bpm = row[0]
-        max_bpm = row[1]
+        if TracksDb.min_bpm is None:
+            self.cursor.execute('SELECT min(bpm), max(bpm) from tracks')
+            row = self.cursor.fetchone()
+            TracksDb.min_bpm = row[0]
+            TracksDb.bpm_range = row[1] - TracksDb.min_bpm
 
         for attr in ESSENTIA_ATTRIBS:
             if 'bpm'==attr:
-                query+='( ((bpm-%d.0)/%d.0)*((bpm-%d.0)/%d.0) )' % (min_bpm, max_bpm-min_bpm, min_bpm, max_bpm-min_bpm)
+                query+='( ((bpm-%d.0)/%d.0)*((bpm-%d.0)/%d.0) )' % (TracksDb.min_bpm, TracksDb.bpm_range, TracksDb.min_bpm, TracksDb.bpm_range)
             else:
                 query+='((%.20f-%s)*(%.20f-%s))+' % (seed[attr], attr, seed[attr], attr)
 
@@ -163,7 +167,7 @@ class TracksDb(object):
             # Adjust similarity using genres
             sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres))**2
 
-            entry['similarity'] = math.sqrt(sim)/max_sim
+            entry['similarity'] = math.sqrt(sim)/TracksDb.max_sim
             entries.append(entry)
 
         # Sort entries by similarity, most similar (lowest number) first
