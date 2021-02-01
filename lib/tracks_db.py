@@ -165,7 +165,7 @@ class TracksDb(object):
             sim = row[len(row)-1]
 
             # Adjust similarity using genres
-            sim += (TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres))**2
+            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres)**2
 
             entry['similarity'] = math.sqrt(sim)/TracksDb.max_sim
             entries.append(entry)
