@@ -61,7 +61,7 @@ def decode(url, root):
 
 
 def log_track(reason, track):
-    _LOGGER.debug('%s Path:%s Similarity:%f Artist:%s Album:%s Genres:%s' % (reason, track['file'], track['similarity'], track['artist'], track['album'], str(track['genres'])))
+    _LOGGER.debug('%s %s' % (reason, str(track)))
 
 
 @essentia_app.route('/api/dump', methods=['GET', 'POST'])
