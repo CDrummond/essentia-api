@@ -73,8 +73,8 @@ class TracksDb(object):
             row = self.cursor.fetchone()
             if row:
                 details = {'file':path, 'title':normalize_title(row[0]), 'artist.orig':row[1], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'duration':row[5], 'rowid':row[6]}
-                if row[3] and len(row[3])>0:
-                    details['genres']=row[3].split(GENRE_SEPARATOR)
+                if row[4] and len(row[4])>0:
+                    details['genres']=row[4].split(GENRE_SEPARATOR)
                 for attr in range(len(ESSENTIA_ATTRIBS)):
                     details[ESSENTIA_ATTRIBS[attr]] = row[attr+7]
                 return details
@@ -120,7 +120,7 @@ class TracksDb(object):
 
         for attr in ESSENTIA_ATTRIBS:
             if 'bpm'==attr:
-                query+='( ((bpm-%d.0)/%d.0)*((bpm-%d.0)/%d.0) )' % (TracksDb.min_bpm, TracksDb.bpm_range, TracksDb.min_bpm, TracksDb.bpm_range)
+                query+='( (((%.20f-%d.0)/%d.0)-((bpm-%d.0)/%d.0))*(((%.20f-%d.0)/%d.0)-((bpm-%d.0)/%d.0)) )' % (seed[attr], TracksDb.min_bpm, TracksDb.bpm_range, TracksDb.min_bpm, TracksDb.bpm_range, seed[attr], TracksDb.min_bpm, TracksDb.bpm_range, TracksDb.min_bpm, TracksDb.bpm_range)
             else:
                 query+='((%.20f-%s)*(%.20f-%s))+' % (seed[attr], attr, seed[attr], attr)
 
@@ -144,8 +144,8 @@ class TracksDb(object):
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
 
-            if row[4] and len(row[4])>0:
-                entry['genres'] = row[4].split(GENRE_SEPARATOR)
+            if row[5] and len(row[5])>0:
+                entry['genres'] = row[5].split(GENRE_SEPARATOR)
 
             sim = row[len(row)-1]
 
