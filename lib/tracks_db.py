@@ -64,6 +64,43 @@ class TracksDb(object):
         self.conn.close()
 
 
+    def get_all(self):
+        tstart = time.time_ns()
+
+        if TracksDb.min_bpm is None:
+            self.cursor.execute('SELECT min(bpm), max(bpm) from tracks')
+            row = self.cursor.fetchone()
+            TracksDb.min_bpm = row[0]
+            TracksDb.bpm_range = row[1] - TracksDb.min_bpm
+
+        cols = 'file, title, artist, album, albumartist, genre, duration, ignore'
+        for ess in ESSENTIA_ATTRIBS:
+            cols+=', %s' % ess
+        self.cursor.execute('SELECT %s FROM tracks' % cols)
+        tracks=[]
+        attr_list=[]
+        for row in self.cursor:
+            if row[7]==1:
+                # Track marked as ignore, so dont add to lists
+                continue
+            track={'file':row[0], 'title':normalize_title(row[1]), 'artist':normalize_artist(row[2]), 'album':normalize_album(row[3]), 'albumartist':normalize_artist(row[4]), 'duration':row[6]}
+            genre = row[5]
+            if row[5] and len(row[5])>0:
+                track['genres']=row[3].split(GENRE_SEPARATOR)
+            attr=0
+            attribs=[]
+            for ess in ESSENTIA_ATTRIBS:
+                if 'bpm'==ess:
+                    attribs.append((row[8+attr]-TracksDb.min_bpm)/TracksDb.bpm_range)
+                else:
+                    attribs.append(row[8+attr])
+                attr+=1
+            tracks.append(track)
+            attr_list.append(attribs)
+        _LOGGER.debug('Loaded %d tracks in:%dms' % (len(tracks), int((time.time_ns()-tstart)/1000000)))
+        return tracks, attribs
+
+
     def get(self, path):
         try:
             query = ''
