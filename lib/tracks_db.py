@@ -163,9 +163,7 @@ class TracksDb(object):
 
         tstart = time.time_ns()
         entries=[]
-        for i in range(len(indexes[0])):
-            if 0==i: # Seed track is always returned first, so skip
-                continue
+        for i in range(1, len(indexes[0])): # Seed track is always returned first, so skip
             entry = TracksDb.track_list[indexes[0][i]]
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
