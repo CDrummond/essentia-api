@@ -8,7 +8,7 @@
 import logging
 import math
 import numpy
-from sklearn.neighbors import KDTree
+from scipy.spatial import cKDTree
 import os
 import sqlite3
 import time
@@ -99,7 +99,7 @@ class TracksDb(object):
 
                 TracksDb.track_list.append(track)
                 attrib_list.append(attribs)
-            TracksDb.tree = KDTree(numpy.array(attrib_list), metric='euclidean')
+            TracksDb.tree = cKDTree(numpy.array(attrib_list))
             _LOGGER.debug('Loaded %d tracks in:%dms' % (len(TracksDb.track_list), int((time.time_ns()-tstart)/1000000)))
 
 
