@@ -8,6 +8,7 @@
 import json
 import logging
 import os
+from . import tracks_db
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,5 +48,14 @@ def read_config(path):
             for g in genres:
                 if not g in config['all_genres']:
                     config['all_genres'].append(g)
+
+    if 'ignoregenre' in config:
+        if isinstance(config['ignoregenre'], list):
+            ignore=[]
+            for item in config['ignoregenre']:
+                ignore.append(tracks_db.normalize_artist(item))
+            config['ignoregenre']=ignore
+        else:
+            config['ignoregenre']=[config['ignoregenre']]
 
     return config

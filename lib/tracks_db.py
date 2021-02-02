@@ -117,7 +117,7 @@ class TracksDb(object):
             self.cursor.execute('SELECT title, artist, album, albumartist, genre, duration, rowid %s FROM tracks WHERE file=?' % query, (path,))
             row = self.cursor.fetchone()
             if row:
-                details = {'file':path, 'title':normalize_title(row[0]), 'artist.orig':row[1], 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'duration':row[5], 'rowid':row[6]}
+                details = {'file':path, 'title':normalize_title(row[0]), 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'duration':row[5], 'rowid':row[6]}
                 if row[4] and len(row[4])>0:
                     details['genres']=row[4].split(GENRE_SEPARATOR)
                 if is_seed:
