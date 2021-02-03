@@ -225,23 +225,6 @@ def similar_api():
                     current_titles.append(entry['title'])
         _LOGGER.debug('Have %d previous tracks to ignore' % len(previous_track_db_entries))
 
-    exclude_artists = []
-    do_exclude_artists = False
-    exclude_key = 'excludeartist' if 'excludeartist' in params else 'exclude'
-    if exclude_key in params:
-        for artist in params[exclude_key]:
-            exclude_artists.append(tracks_db.normalize_artist(artist.strip()))
-        do_exclude_artists = len(exclude_artists)>0
-        _LOGGER.debug('Have %d artists to exclude %s' % (len(exclude_artists), exclude_artists))
-
-    exclude_albums = []
-    do_exclude_albums = False
-    if 'excludealbum' in params:
-        for album in params['excludealbum']:
-            exclude_albums.append(tracks_db.normalize_album(album.strip()))
-        do_exclude_albums = len(exclude_albums)>0
-        _LOGGER.debug('Have %d albums to exclude %s' % (len(exclude_albums), exclude_albums))
-
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
@@ -262,10 +245,6 @@ def similar_api():
                 log_track('DISCARD(genre)', track)
             elif exclude_christmas and filters.is_christmas(track):
                 log_track('DISCARD(xmas)', track)
-            elif do_exclude_artists and filters.match_artist(exclude_artists, track):
-                log_track('DISCARD(artist)', track)
-            elif do_exclude_albums and filters.match_album(exclude_albums, track):
-                log_track('DISCARD(album)', track)
             else:
                 if filters.same_artist_or_album(seed_track_db_entries, track):
                     log_track('FILTERED(seeds)', track)

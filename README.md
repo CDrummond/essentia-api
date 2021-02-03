@@ -21,7 +21,7 @@ The API server can be installed as a Systemd service, or started manually:
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&previous=/path/to/previous&filterxmas=1&exclude=ArtistA&exclude=ArtistB&shuffle=1
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&previous=/path/to/previous&filterxmas=1&shuffle=1
 ```
 ...this will get 10 similar tracks to those supplied.
 
@@ -39,13 +39,6 @@ seconds) of tracks to be considered.
 
 `previous` may be used to list tracks to ignore (e.g. tracks that are already in
 the queue). This parameter, like `track`, may be repeated multiple times.
-
-`excludeartist` may be used to list artists to ignore. This parameter, like
-`track`, may be repeated multiple times.
-
-`excludealbum` may be used to list albums to ignore. The format of this is
-`albumarist - albumname` This parameter, like `track`, may be repeated multiple
-times.
 
 `shuffle` indicates that the chosen tracks should be shuffled.
 
