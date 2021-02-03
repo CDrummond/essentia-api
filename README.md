@@ -94,14 +94,19 @@ This has the following format:
 {
  "lms":"/home/storage/Music/",
  "db":"/home/craig/Development/Essentia/lms-essentia/essentia.db",
- "port":11000,
- "host":"0.0.0.0",
  "genres":[
   ["Alternative Rock", "Classic Rock", "Folk/Rock", "Hard Rock", "Indie Rock", "Punk Rock", "Rock"],
   ["Dance", "Disco", "Hip-Hop", "Pop", "Pop/Folk", "Pop/Rock", "R&B", "Reggae", "Soul", "Trance"],
   ["Gothic Metal", "Heavy Metal", "Power Metal", "Progressive Metal", "Progressive Rock", "Symphonic Metal", "Symphonic Power Metal"]
  ],
- "ignoregenre":["Artist"]
+ "ignoregenre":["Artist"],
+ "normalize":{
+  "artist":["feet", "ft", "featuring"],
+  "album":["deluxe edition", "remastered"],
+  "title"["demo", "radio edit"]
+ },
+ "port":11000,
+ "host":"0.0.0.0"
 }
 ```
 
@@ -112,6 +117,9 @@ its database by their relative path.
 * `genres` This is as described above.
 * `ignoregenre` List of artists where genre filtering (excluding christmas)
 should be ignored. To apply to all artists, use '*' - e.g. `"ignoregenre":"*"`
+* `normalize.artist` List of (lowercase) strings to remove from artist names.
+* `normalize.album` List of (lowercase) strings to remove from album names.
+* `normalize.title` List of (lowercase) strings to remove from titles.
 * `port` This is the port number the API is accessible on.
 * `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on
 all interfaces on your network.

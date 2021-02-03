@@ -18,8 +18,10 @@ GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 NUM_NEIGHBOURS = 1000
 _LOGGER = logging.getLogger(__name__)
-ALBUM_REMOVALS = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
-TITLE_REMOVALS = ['demo', 'demo version', 'radio edit', 'remastered', 'session version', 'live', 'live acoustic', 'acoustic', 'industrial remix', 'alternative version', 'alternate version', 'original mix', 'bonus track', 're-recording', 'alternate']
+
+album_rem = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
+artist_rem = ['feat', 'ft', 'featuring']
+title_rem = ['demo', 'demo version', 'radio edit', 'remastered', 'session version', 'live', 'live acoustic', 'acoustic', 'industrial remix', 'alternative version', 'alternate version', 'original mix', 'bonus track', 're-recording', 'alternate']
 
 
 def normalize_str(s):
@@ -35,7 +37,8 @@ def normalize_album(album):
     if not album:
         return album
     s = album.lower()
-    for r in ALBUM_REMOVALS:
+    global album_rem
+    for r in album_rem:
         s=s.replace(' (%s)' % r, '')
     return normalize_str(s)
 
@@ -44,8 +47,9 @@ def normalize_artist(artist):
     if not artist:
         return artist
     ar = normalize_str(artist.lower())
-    for ft in [' feat ', ' ft ', ' featuring ']:
-        pos = ar.find(ft)
+    global artist_rem
+    for r in artist_rem:
+        pos = ar.find(' %s ' % r)
         if pos>2:
             return ar[:pos]
     return ar
@@ -55,9 +59,22 @@ def normalize_title(title):
     if not title:
         return title
     s = title.lower()
-    for r in TITLE_REMOVALS:
+    global title_rem
+    for r in title_rem:
         s=s.replace(' (%s)' % r, '')
     return normalize_str(s)
+
+
+def set_normalize_options(opts):
+    if 'album' in opts and isinstance(opts['album'], list):
+        global album_rem
+        album_rem = opts['album']
+    if 'artist' in opts and isinstance(opts['artist'], list):
+        global artist_rem
+        artist_rem = opts['album']
+    if 'title' in opts and isinstance(opts['title'], list):
+        global title_rem
+        title_rem = opts['title']
 
 
 class TracksDb(object):

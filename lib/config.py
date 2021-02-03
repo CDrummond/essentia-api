@@ -58,4 +58,7 @@ def read_config(path):
         else:
             config['ignoregenre']=[config['ignoregenre']]
 
+    if 'normalize' in config:
+        tracks_db.set_normalize_options(config['normalize'])
+
     return config
