@@ -43,7 +43,12 @@ def normalize_album(album):
 def normalize_artist(artist):
     if not artist:
         return artist
-    return normalize_str(artist.lower()).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
+    ar = normalize_str(artist.lower())
+    for ft in [' feat ', ' ft ', ' featuring ']:
+        pos = ar.find(ft)
+        if pos>2:
+            return ar[:pos]
+    return ar
 
 
 def normalize_title(title):
