@@ -68,13 +68,13 @@ def normalize_title(title):
 def set_normalize_options(opts):
     if 'album' in opts and isinstance(opts['album'], list):
         global album_rem
-        album_rem = opts['album']
+        album_rem = [e.lower() for e in opts['album']]
     if 'artist' in opts and isinstance(opts['artist'], list):
         global artist_rem
-        artist_rem = opts['album']
+        artist_rem = [e.lower() for e in opts['album']]
     if 'title' in opts and isinstance(opts['title'], list):
         global title_rem
-        title_rem = opts['title']
+        title_rem = [e.lower() for e in opts['title']]
 
 
 class TracksDb(object):

@@ -117,9 +117,10 @@ its database by their relative path.
 * `genres` This is as described above.
 * `ignoregenre` List of artists where genre filtering (excluding christmas)
 should be ignored. To apply to all artists, use '*' - e.g. `"ignoregenre":"*"`
-* `normalize.artist` List of (lowercase) strings to remove from artist names.
-* `normalize.album` List of (lowercase) strings to remove from album names.
-* `normalize.title` List of (lowercase) strings to remove from titles.
+* `normalize.artist` List of strings to split artist names, e.g. "A ft. B"
+becomes "A" (periods are automatically removed)
+* `normalize.album` List of strings to remove from album names.
+* `normalize.title` List of strings to remove from titles.
 * `port` This is the port number the API is accessible on.
 * `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on
 all interfaces on your network.
