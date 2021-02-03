@@ -162,8 +162,11 @@ class TracksDb(object):
         _LOGGER.debug('Tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
-        entries=[]
+        entries = []
+        num_tracks = len(TracksDb.track_list)
         for i in range(1, len(indexes[0])): # Seed track is always returned first, so skip
+            if i>=num_tracks:
+                continue
             entry = TracksDb.track_list[indexes[0][i]]
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
