@@ -192,6 +192,8 @@ class TracksDb(object):
             entry = TracksDb.track_list[indexes[0][i]]
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
+            if (min_duration>0 and entry['duration']<min_duration) or (max_duration>0 and entry['duration']>max_duration):
+                continue
 
             # Square distance, as /might/ want to add genre
             sim = distances[0][i]**2
