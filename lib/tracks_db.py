@@ -195,13 +195,29 @@ class TracksDb(object):
             if (min_duration>0 and entry['duration']<min_duration) or (max_duration>0 and entry['duration']>max_duration):
                 continue
 
-            # Square distance, as /might/ want to add genre
+            # KDTree returns the euclidean distance between entries. This is:
+            #
+            #   distance = sqrt( sqr( seed[danceable]-track[danceable] ) + ... + sqr( seed[bpm]-track[bpm] ) )
+            #
+            # ...but also want (if match_all_genres=False) to add genre to this metric. To do this we need to square
+            # the euclidean distance, add to this the square of genre diff, and then take the square root. e.g.
+            #
+            #   distance = sqrt( sqr( seed[danceable]-track[danceable] ) + ... + sqr( seed[bpm]-track[bpm] ) + sqr ( genre_difference ) )
+            #
+            #
+            # ...also, want the similarity to be in the range 0..1, so use the percentage diff of the maximum possible
+
+
+            # Undo the square-root part of euclidean distance
             sim = distances[0][i]**2
 
-            # Adjust similarity using genres
+            # Add in the square of the 'genre difference'
             sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres)**2
 
+            # Now convert back to euclidean (by taking the square root), and then work out the % this is of
+            # maximum similarity score
             entry['similarity'] = math.sqrt(sim)/TracksDb.max_sim
+
             entries.append(entry)
 
         # Sort entries by similarity, most similar (lowest number) first
