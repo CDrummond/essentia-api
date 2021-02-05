@@ -270,6 +270,7 @@ def similar_api():
                     matched_artists[track['artist']]={'similarity':track['similarity'], 'tracks':[track], 'pos':len(similar_tracks)-1}
                     if 'title' in track:
                         current_titles.append(track['title'])
+                    skip_rows.append(entry['rowid'])
                     accepted_tracks += 1
                     if accepted_tracks >= similarity_count:
                         break
