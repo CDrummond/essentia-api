@@ -221,6 +221,6 @@ class TracksDb(object):
             entries.append(entry)
 
         # Sort entries by similarity, most similar (lowest number) first
-        vals = sorted(entries, key=lambda k: k['similarity'])
+        entries = sorted(entries, key=lambda k: k['similarity'])
         _LOGGER.debug('Processing time:%d' % int((time.time_ns()-tstart)/1000000))
-        return vals;
+        return entries;
