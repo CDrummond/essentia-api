@@ -180,7 +180,8 @@ class TracksDb(object):
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
         tstart = time.time_ns()
-        distances, indexes = TracksDb.tree.query(numpy.array([seed['attribs']]), k=NUM_NEIGHBOURS+1) # +1 as seed is also returned
+        num_skip = len(skip_rows) if None!=skip_rows and len(skip_rows)>0 else 1
+        distances, indexes = TracksDb.tree.query(numpy.array([seed['attribs']]), k=NUM_NEIGHBOURS+num_skip)
         _LOGGER.debug('Tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
