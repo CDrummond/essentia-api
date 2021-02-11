@@ -187,7 +187,7 @@ def similar_api():
         _LOGGER.debug('Duration:%d .. %d' % (min_duration, max_duration))
 
     seed_track_db_entries=[]
-    seed_genres=[]
+    seed_genres=set()
     all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
     for trk in params['track']:
         track = decode(trk, root)
@@ -204,7 +204,7 @@ def similar_api():
                         if genre in group:
                             for cg in group:
                                 if not cg in seed_genres:
-                                    seed_genres.append(cg)
+                                    seed_genres.add(cg)
             if 'title' in entry:
                 current_titles.append(entry['title'])
         else:
