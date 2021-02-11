@@ -98,15 +98,15 @@ def dump_api():
     if entry is None:
         abort(404)
 
-    seed_genres=[]
+    seed_genres=set()
     all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
-    if 'genres' in entry and 'genres' in cfg:
-        for genre in entry['genres']:
+    if 'igenres' in entry and 'genres' in cfg:
+        for genre in entry['igenres']:
             for group in cfg['genres']:
                 if genre in group:
                     for cg in group:
                         if not cg in seed_genres:
-                            seed_genres.append(cg)
+                            seed_genres.add(cg)
 
     fmt = get_value(params, 'format', '', isPost)
 
@@ -198,8 +198,8 @@ def similar_api():
         if entry is not None:
             seed_track_db_entries.append(entry)
             skip_rows.append(entry['rowid'])
-            if 'genres' in entry and 'genres' in cfg:
-                for genre in entry['genres']:
+            if 'igenres' in entry and 'genres' in cfg:
+                for genre in entry['igenres']:
                     for group in cfg['genres']:
                         if genre in group:
                             for cg in group:

@@ -22,7 +22,7 @@ def same_artist_or_album(seeds, track, check_album_only=False, max_check=0):
 
 
 def genre_matches(config, seed_genres, track):
-    if 'genres' not in track or len(track['genres'])<1:
+    if 'igenres' not in track or len(track['igenres'])<1:
         return True # Track has no genre? Then can't filter out...
 
     # Ignore genre for an artist?
@@ -32,7 +32,7 @@ def genre_matches(config, seed_genres, track):
     if len(seed_genres)<1:
         # No filtering for seed track genres
         if 'all_genres' in config:
-            for tg in track['genres']:
+            for tg in track['igenres']:
                 if tg in config['all_genres']:
                     # Track's genre is in config list, but not in seeds, so filter out track
                     return False
@@ -40,7 +40,7 @@ def genre_matches(config, seed_genres, track):
         return True
 
     for sg in seed_genres:
-        if sg in track['genres']:
+        if sg in track['igenres']:
             return True
 
     return False

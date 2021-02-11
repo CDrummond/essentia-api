@@ -82,7 +82,9 @@ class TracksDb(object):
     bpm_range = None
     max_sim = math.sqrt(len(ESSENTIA_ATTRIBS)+1) # +1 for genre
     track_list = []
-    tree = None
+    attrib_list = None
+    last_call = None
+    genre_map = {}
 
 
     def __init__(self, config):
@@ -102,7 +104,7 @@ class TracksDb(object):
                 cols+=', %s' % ess
             self.cursor.execute('SELECT %s FROM tracks' % cols)
 
-            attrib_list=[]
+            attrib_list = []
             for row in self.cursor:
                 if row[7]==1:
                     # Track marked as ignore, so dont add to lists
@@ -111,6 +113,18 @@ class TracksDb(object):
                 genre = row[5]
                 if row[5] and len(row[5])>0:
                     track['genres']=row[5].split(GENRE_SEPARATOR)
+                    igenres = []
+                    for genre in track['genres']:
+                        if genre not in TracksDb.genre_map:
+                            igenre = len(TracksDb.genre_map)
+                            TracksDb.genre_map[genre] = igenre
+                        else:
+                            igenre = TracksDb.genre_map[genre]
+                        igenres.append(igenre)
+                    track['igenres'] = igenres
+                else:
+                    track['igenres'] = [-1]
+                    track['genres'] = [""]
 
                 attribs=[]
                 for attr in range(len(ESSENTIA_ATTRIBS)):
@@ -118,10 +132,33 @@ class TracksDb(object):
                         attribs.append((row[9+attr]-TracksDb.min_bpm)/TracksDb.bpm_range)
                     else:
                         attribs.append(row[9+attr])
+                attribs.append(5)
 
                 TracksDb.track_list.append(track)
                 attrib_list.append(attribs)
-            TracksDb.tree = cKDTree(numpy.array(attrib_list))
+            TracksDb.attrib_list = numpy.array(attrib_list)
+
+            # Update config item genres from strings to ints
+            if 'genres' in config:
+                config_genres = []
+                all_genres = []
+                for genres in config['genres']:
+                    group_genres = []
+                    for g in genres:
+                        if g in TracksDb.genre_map:
+                            val = TracksDb.genre_map[g]
+                            group_genres.append(val)
+                            if not val in config_genres:
+                                all_genres.append(val)
+                    if len(group_genres)>0:
+                        config_genres.append(group_genres)
+                if len(config_genres)>0:
+                    config['genres'] = config_genres
+                    config['all_genres'] = set(all_genres)
+                else:
+                    config.pop('genres')
+                    config.pop('all_genres')
+
             _LOGGER.debug('Loaded %d tracks in:%dms' % (len(TracksDb.track_list), int((time.time_ns()-tstart)/1000000)))
 
 
@@ -142,6 +179,14 @@ class TracksDb(object):
                 details = {'file':path, 'title':normalize_title(row[0]), 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'duration':row[5], 'rowid':row[6]}
                 if row[4] and len(row[4])>0:
                     details['genres']=row[4].split(GENRE_SEPARATOR)
+                    igenres = []
+                    for genre in details['genres']:
+                        igenres.append(TracksDb.genre_map[genre])
+                    details['igenres'] = igenres
+                else:
+                    details['igenres'] = [-1]
+                    details['genres'] = [""]
+
                 if is_seed:
                     attribs=[]
                     for attr in range(len(ESSENTIA_ATTRIBS)):
@@ -149,6 +194,7 @@ class TracksDb(object):
                             attribs.append((row[7+attr]-TracksDb.min_bpm)/TracksDb.bpm_range)
                         else:
                             attribs.append(row[7+attr])
+                    attribs.append(0)
                     details['attribs']=attribs
                 return details
         except Exception as e:
@@ -161,14 +207,10 @@ class TracksDb(object):
     def genre_sim(seed, entry, seed_genres, all_genres, match_all_genres=False):
         if match_all_genres:
             return 0.1
-        if 'genres' not in seed:
-            return 0.5
-        if 'genres' not in entry:
-            return 0.5
-        if seed['genres'][0]==entry['genres'][0]:
+        if seed['igenres'][0]==entry['igenres'][0]:
             return 0.1
-        if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
-           (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
+        if (seed_genres is not None and entry['igenres'][0] not in seed_genres) or \
+           (seed_genres is None and all_genres is not None and entry['igenres'][0] in all_genres):
             return 0.7
         return 0.2
 
@@ -179,49 +221,44 @@ class TracksDb(object):
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
+        # Rebuild tree, if required
+        if TracksDb.last_call is None or \
+            TracksDb.last_call['igenre'] != seed['igenres'][0] or \
+            (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
+            (TracksDb.last_call['seed_genres'] is not None and seed_genres is None) or \
+            (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
+            len(TracksDb.last_call['seed_genres']-seed_genres)>0 :
+
+            tstart = time.time_ns()
+            genre_attrib = len(ESSENTIA_ATTRIBS)
+            for i in range(len(TracksDb.track_list)):
+                if TracksDb.track_list[i]['rowid'] == seed['rowid']:
+                    TracksDb.attrib_list[i][genre_attrib] = 0
+                else:
+                    TracksDb.attrib_list[i][genre_attrib] = TracksDb.genre_sim(seed, TracksDb.track_list[i], seed_genres, all_genres, match_all_genres)
+            _LOGGER.debug('Calc genre diff time:%d' % int((time.time_ns()-tstart)/1000000))
+
+            tstart = time.time_ns()
+            TracksDb.last_call={'seed_genres':seed_genres, 'igenre':seed['igenres'][0], 'tree':cKDTree(TracksDb.attrib_list)}
+            _LOGGER.debug('Build tree time:%d' % int((time.time_ns()-tstart)/1000000))
+
         tstart = time.time_ns()
         num_skip = len(skip_rows) if None!=skip_rows and len(skip_rows)>0 else 1
-        distances, indexes = TracksDb.tree.query(numpy.array([seed['attribs']]), k=NUM_NEIGHBOURS+num_skip)
+        distances, indexes = TracksDb.last_call['tree'].query(numpy.array([seed['attribs']]), k=NUM_NEIGHBOURS+num_skip)
         _LOGGER.debug('Tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
         entries = []
         num_tracks = len(TracksDb.track_list)
-        for i in range(1, len(indexes[0])): # Seed track is always returned first, so skip
-            if i>=num_tracks:
-                continue
+        for i in range(1, min(len(indexes[0]), num_tracks)): # Seed track is always returned first, so skip
             entry = TracksDb.track_list[indexes[0][i]]
             if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
                 continue
             if (min_duration>0 and entry['duration']<min_duration) or (max_duration>0 and entry['duration']>max_duration):
                 continue
 
-            # KDTree returns the euclidean distance between entries. This is:
-            #
-            #   distance = sqrt( sqr( seed[danceable]-track[danceable] ) + ... + sqr( seed[bpm]-track[bpm] ) )
-            #
-            # ...but also want (if match_all_genres=False) to add genre to this metric. To do this we need to square
-            # the euclidean distance, add to this the square of genre diff, and then take the square root. e.g.
-            #
-            #   distance = sqrt( sqr( seed[danceable]-track[danceable] ) + ... + sqr( seed[bpm]-track[bpm] ) + sqr ( genre_difference ) )
-            #
-            #
-            # ...also, want the similarity to be in the range 0..1, so use the percentage diff of the maximum possible
-
-
-            # Undo the square-root part of euclidean distance
-            sim = distances[0][i]**2
-
-            # Add in the square of the 'genre difference'
-            sim += TracksDb.genre_sim(seed, entry, seed_genres, all_genres, match_all_genres)**2
-
-            # Now convert back to euclidean (by taking the square root), and then work out the % this is of
-            # maximum similarity score
-            entry['similarity'] = math.sqrt(sim)/TracksDb.max_sim
-
+            entry['similarity'] = distances[0][i]/TracksDb.max_sim
             entries.append(entry)
 
-        # Sort entries by similarity, most similar (lowest number) first
-        entries = sorted(entries, key=lambda k: k['similarity'])
         _LOGGER.debug('Processing time:%d' % int((time.time_ns()-tstart)/1000000))
         return entries;
