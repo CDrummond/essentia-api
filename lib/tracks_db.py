@@ -223,11 +223,13 @@ class TracksDb(object):
 
         # Rebuild tree, if required
         if TracksDb.last_call is None or \
-            TracksDb.last_call['igenre'] != seed['igenres'][0] or \
-            (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
-            (TracksDb.last_call['seed_genres'] is not None and seed_genres is None) or \
-            (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
-            len(TracksDb.last_call['seed_genres']-seed_genres)>0 :
+            (match_all_genres and not TracksDb.last_call['match_all_genres']) or \
+            ( (not match_all_genres) and \
+              ( TracksDb.last_call['igenre'] != seed['igenres'][0] or \
+                (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
+                (TracksDb.last_call['seed_genres'] is not None and seed_genres is None) or \
+                (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
+                len(TracksDb.last_call['seed_genres']-seed_genres)>0)) :
 
             tstart = time.time_ns()
             genre_attrib = len(ESSENTIA_ATTRIBS)
@@ -239,7 +241,7 @@ class TracksDb(object):
             _LOGGER.debug('Calc genre diff time:%d' % int((time.time_ns()-tstart)/1000000))
 
             tstart = time.time_ns()
-            TracksDb.last_call={'seed_genres':seed_genres, 'igenre':seed['igenres'][0], 'tree':cKDTree(TracksDb.attrib_list)}
+            TracksDb.last_call={'seed_genres':seed_genres, 'igenre':seed['igenres'][0], 'match_all_genres':match_all_genres, 'tree':cKDTree(TracksDb.attrib_list)}
             _LOGGER.debug('Build tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
