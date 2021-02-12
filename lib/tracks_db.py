@@ -179,12 +179,12 @@ class TracksDb(object):
                         diff_map[ogenre]=0.1
                     elif ogenre in genre_group:
                         # ogenre is in same group as genre
-                        diff_map[ogenre]=0.3
+                        diff_map[ogenre]=0.2
                     elif not in_all and ogenre not in config['all_genres']:
                         # again, ogenre is in same group as genre - i.e. they are both in the 'ungrouped' genre
-                        diff_map[ogenre]=0.3
+                        diff_map[ogenre]=0.2
                     else:
-                        diff_map[ogenre]=0.7
+                        diff_map[ogenre]=0.4
 
                 TracksDb.genre_differences[genre]=diff_map
 
