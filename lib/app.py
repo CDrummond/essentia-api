@@ -100,7 +100,7 @@ def dump_api():
 
     fmt = get_value(params, 'format', '', isPost)
 
-    tracks = db.get_similar_tracks(cfg, entry,  match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
+    tracks = db.get_similar_tracks(entry,  match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
     if not fmt.startswith('text'):
@@ -226,7 +226,7 @@ def similar_api():
         match_all_genres = ('ignoregenre' in cfg) and ('*'==cfg['ignoregenre'][0] or (seed['artist'] in cfg['ignoregenre']))
 
         # Query DB for similar tracks
-        resp = db.get_similar_tracks(cfg, seed, match_all_genres, len(skip_rows))
+        resp = db.get_similar_tracks(seed, match_all_genres, len(skip_rows))
 
         for track in resp:
         

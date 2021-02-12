@@ -17,6 +17,7 @@ import time
 GENRE_SEPARATOR = ';'
 ESSENTIA_ATTRIBS = ['danceable', 'aggressive', 'electronic', 'acoustic', 'happy', 'party', 'relaxed', 'sad', 'dark', 'tonal', 'voice', 'bpm']
 NUM_NEIGHBOURS = 1000
+NO_GENRE = "<NoGenre>"
 _LOGGER = logging.getLogger(__name__)
 
 album_rem = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
@@ -85,6 +86,7 @@ class TracksDb(object):
     attrib_list = None
     last_call = None
     genre_map = {}
+    genre_differences = {}
 
 
     def __init__(self, config):
@@ -105,6 +107,7 @@ class TracksDb(object):
             self.cursor.execute('SELECT %s FROM tracks' % cols)
 
             attrib_list = []
+            TracksDb.genre_map[NO_GENRE] = 0
             for row in self.cursor:
                 if row[7]==1:
                     # Track marked as ignore, so dont add to lists
@@ -118,13 +121,15 @@ class TracksDb(object):
                         if genre not in TracksDb.genre_map:
                             igenre = len(TracksDb.genre_map)
                             TracksDb.genre_map[genre] = igenre
+                            _LOGGER.debug("%s -> %d" % (genre, igenre))
                         else:
                             igenre = TracksDb.genre_map[genre]
                         igenres.append(igenre)
                     track['igenres'] = igenres
                 else:
-                    track['igenres'] = [-1]
-                    track['genres'] = [""]
+                    _LOGGER.warning("NO GENRE FOR: %s" % track['file'])
+                    track['igenres'] = [0]
+                    track['genres'] = [NO_GENRE]
 
                 attribs=[]
                 for attr in range(len(ESSENTIA_ATTRIBS)):
@@ -159,6 +164,24 @@ class TracksDb(object):
                     config.pop('genres')
                     config.pop('all_genres')
 
+            # Create map of genre -> list of differences to other genres
+            for genre in range(len(TracksDb.genre_map)):
+                diff_map={}
+                genre_group=set()
+                if 'genres' in config:
+                    for group in config['genres']:
+                        if genre in group:
+                            genre_group = set(group)
+
+                for ogenre in range(len(TracksDb.genre_map)):
+                    if ogenre==genre:
+                        diff_map[ogenre]=0.1
+                    elif ogenre in genre_group:
+                        diff_map[ogenre]=0.3
+                    else:
+                        diff_map[ogenre]=0.7
+                TracksDb.genre_differences[genre]=diff_map
+
             _LOGGER.debug('Loaded %d tracks in:%dms' % (len(TracksDb.track_list), int((time.time_ns()-tstart)/1000000)))
 
 
@@ -184,8 +207,8 @@ class TracksDb(object):
                         igenres.append(TracksDb.genre_map[genre])
                     details['igenres'] = igenres
                 else:
-                    details['igenres'] = [-1]
-                    details['genres'] = [""]
+                    details['igenres'] = [0]
+                    details['genres'] = [NO_GENRE]
 
                 if is_seed:
                     attribs=[]
@@ -203,52 +226,26 @@ class TracksDb(object):
         return None
 
 
-    @staticmethod
-    def genre_sim(seed, entry, seed_genres, match_all_genres=False):
-        if match_all_genres:
-            return 0.1
-        if seed['igenres'][0]==entry['igenres'][0]:
-            return 0.1
-        if (entry['igenres'][0] in seed_genres):
-            return 0.3
-        return 0.7
-
-
-    def get_similar_tracks(self, config, seed, match_all_genres=False, num_skip=0):
+    def get_similar_tracks(self, seed, match_all_genres=False, num_skip=0):
         query = ''
         duration = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
-
-        seed_genres=set()
-        if (not match_all_genres) and 'genres' in config:
-            for genre in seed['igenres']:
-                for group in config['genres']:
-                    if genre in group:
-                        for cg in group:
-                            seed_genres.add(cg)
                             
         # Rebuild tree, if required
         if TracksDb.last_call is None or \
             (match_all_genres and not TracksDb.last_call['match_all_genres']) or \
-            ( (not match_all_genres) and \
-              ( TracksDb.last_call['igenre'] != seed['igenres'][0] or \
-                (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
-                (TracksDb.last_call['seed_genres'] is not None and seed_genres is None) or \
-                (TracksDb.last_call['seed_genres'] is None and seed_genres is not None) or \
-                len(TracksDb.last_call['seed_genres']-seed_genres)>0)) :
+            ( (not match_all_genres) and (TracksDb.last_call['igenre'] != seed['igenres'][0]) ) :
 
             tstart = time.time_ns()
             genre_attrib = len(ESSENTIA_ATTRIBS)
             for i in range(len(TracksDb.track_list)):
-                if TracksDb.track_list[i]['rowid'] == seed['rowid']:
-                    TracksDb.attrib_list[i][genre_attrib] = 0
-                else:
-                    TracksDb.attrib_list[i][genre_attrib] = TracksDb.genre_sim(seed, TracksDb.track_list[i], seed_genres, match_all_genres)
+                TracksDb.attrib_list[i][genre_attrib] = TracksDb.genre_differences[seed['igenres'][0]][TracksDb.track_list[i]['igenres'][0]]
+
             _LOGGER.debug('Calc genre diff time:%d' % int((time.time_ns()-tstart)/1000000))
 
             tstart = time.time_ns()
-            TracksDb.last_call={'seed_genres':seed_genres, 'igenre':seed['igenres'][0], 'match_all_genres':match_all_genres, 'tree':cKDTree(TracksDb.attrib_list)}
+            TracksDb.last_call={'igenre':seed['igenres'][0], 'match_all_genres':match_all_genres, 'tree':cKDTree(TracksDb.attrib_list)}
             _LOGGER.debug('Build tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
