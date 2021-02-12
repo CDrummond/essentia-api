@@ -229,12 +229,10 @@ def similar_api():
         resp = db.get_similar_tracks(seed, match_all_genres, len(skip_rows))
 
         for track in resp:
-        
-            if track['rowid'] in skip_rows:
+
+            if track['rowid'] in skip_rows or (min_duration>0 and track['duration']<min_duration) or (max_duration>0 and track['duration']>max_duration):
                 continue
-            if (min_duration>0 and track['duration']<min_duration) or (max_duration>0 and track['duration']>max_duration):
-                continue
-                
+
             if match_genre and not match_all_genres and not filters.genre_matches(cfg, seed_genres, track):
                 log_track('DISCARD(genre)', track)
             elif exclude_christmas and filters.is_christmas(track):

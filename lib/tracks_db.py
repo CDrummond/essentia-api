@@ -231,7 +231,7 @@ class TracksDb(object):
         duration = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
-                            
+
         # Rebuild tree, if required
         if TracksDb.last_call is None or \
             (match_all_genres and not TracksDb.last_call['match_all_genres']) or \
