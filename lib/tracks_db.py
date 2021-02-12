@@ -204,18 +204,17 @@ class TracksDb(object):
 
 
     @staticmethod
-    def genre_sim(seed, entry, seed_genres, all_genres, match_all_genres=False):
+    def genre_sim(seed, entry, seed_genres, match_all_genres=False):
         if match_all_genres:
             return 0.1
         if seed['igenres'][0]==entry['igenres'][0]:
             return 0.1
-        if (seed_genres is not None and entry['igenres'][0] not in seed_genres) or \
-           (seed_genres is None and all_genres is not None and entry['igenres'][0] in all_genres):
-            return 0.7
-        return 0.2
+        if (entry['igenres'][0] in seed_genres):
+            return 0.3
+        return 0.7
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, match_all_genres=False, num_skip=0):
+    def get_similar_tracks(self, seed, seed_genres, match_all_genres=False, num_skip=0):
         query = ''
         duration = ''
         total = 0
@@ -237,7 +236,7 @@ class TracksDb(object):
                 if TracksDb.track_list[i]['rowid'] == seed['rowid']:
                     TracksDb.attrib_list[i][genre_attrib] = 0
                 else:
-                    TracksDb.attrib_list[i][genre_attrib] = TracksDb.genre_sim(seed, TracksDb.track_list[i], seed_genres, all_genres, match_all_genres)
+                    TracksDb.attrib_list[i][genre_attrib] = TracksDb.genre_sim(seed, TracksDb.track_list[i], seed_genres, match_all_genres)
             _LOGGER.debug('Calc genre diff time:%d' % int((time.time_ns()-tstart)/1000000))
 
             tstart = time.time_ns()
