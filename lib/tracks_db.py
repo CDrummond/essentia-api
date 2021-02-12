@@ -215,7 +215,7 @@ class TracksDb(object):
         return 0.2
 
 
-    def get_similar_tracks(self, seed, seed_genres, all_genres, min_duration=0, max_duration=24*60*60, skip_rows=[], match_all_genres=False):
+    def get_similar_tracks(self, seed, seed_genres, all_genres, match_all_genres=False, num_skip=0):
         query = ''
         duration = ''
         total = 0
@@ -243,7 +243,6 @@ class TracksDb(object):
             _LOGGER.debug('Build tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
-        num_skip = len(skip_rows) if None!=skip_rows and len(skip_rows)>0 else 1
         distances, indexes = TracksDb.last_call['tree'].query(numpy.array([seed['attribs']]), k=NUM_NEIGHBOURS+num_skip)
         _LOGGER.debug('Tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
@@ -252,11 +251,6 @@ class TracksDb(object):
         num_tracks = len(TracksDb.track_list)
         for i in range(1, min(len(indexes[0]), num_tracks)): # Seed track is always returned first, so skip
             entry = TracksDb.track_list[indexes[0][i]]
-            if entry['rowid'] == seed['rowid'] or (skip_rows is not None and entry['rowid'] in skip_rows):
-                continue
-            if (min_duration>0 and entry['duration']<min_duration) or (max_duration>0 and entry['duration']>max_duration):
-                continue
-
             entry['similarity'] = distances[0][i]/TracksDb.max_sim
             entries.append(entry)
 

@@ -181,7 +181,7 @@ def similar_api():
     current_titles=[]
 
     # Set of rows from seeds/previous, and already checked items
-    skip_rows=[]
+    skip_rows=set()
 
     if min_duration>0 or max_duration>0:
         _LOGGER.debug('Duration:%d .. %d' % (min_duration, max_duration))
@@ -197,7 +197,7 @@ def similar_api():
         entry = db.get(track, True)
         if entry is not None:
             seed_track_db_entries.append(entry)
-            skip_rows.append(entry['rowid'])
+            skip_rows.add(entry['rowid'])
             if 'igenres' in entry and 'genres' in cfg:
                 for genre in entry['igenres']:
                     for group in cfg['genres']:
@@ -220,7 +220,7 @@ def similar_api():
             if entry is not None:
                 previous_track_db_entries.append(entry)
                 if entry['rowid'] not in skip_rows:
-                    skip_rows.append(entry['rowid'])
+                    skip_rows.add(entry['rowid'])
                 if 'title' in entry:
                     current_titles.append(entry['title'])
         _LOGGER.debug('Have %d previous tracks to ignore' % len(previous_track_db_entries))
@@ -238,9 +238,15 @@ def similar_api():
         match_all_genres = ('ignoregenre' in cfg) and ('*'==cfg['ignoregenre'][0] or (seed['artist'] in cfg['ignoregenre']))
 
         # Query DB for similar tracks
-        resp = db.get_similar_tracks(seed, seed_genres, all_genres, min_duration, max_duration, skip_rows, match_all_genres)
+        resp = db.get_similar_tracks(seed, seed_genres, all_genres, match_all_genres, len(skip_rows))
 
         for track in resp:
+        
+            if track['rowid'] in skip_rows:
+                continue
+            if (min_duration>0 and track['duration']<min_duration) or (max_duration>0 and track['duration']>max_duration):
+                continue
+                
             if match_genre and not match_all_genres and not filters.genre_matches(cfg, seed_genres, track):
                 log_track('DISCARD(genre)', track)
             elif exclude_christmas and filters.is_christmas(track):
@@ -270,7 +276,7 @@ def similar_api():
                     matched_artists[track['artist']]={'similarity':track['similarity'], 'tracks':[track], 'pos':len(similar_tracks)-1}
                     if 'title' in track:
                         current_titles.append(track['title'])
-                    skip_rows.append(entry['rowid'])
+                    skip_rows.add(entry['rowid'])
                     accepted_tracks += 1
                     if accepted_tracks >= similarity_count:
                         break
