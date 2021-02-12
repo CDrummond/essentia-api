@@ -214,12 +214,20 @@ class TracksDb(object):
         return 0.7
 
 
-    def get_similar_tracks(self, seed, seed_genres, match_all_genres=False, num_skip=0):
+    def get_similar_tracks(self, config, seed, match_all_genres=False, num_skip=0):
         query = ''
         duration = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
 
+        seed_genres=set()
+        if (not match_all_genres) and 'genres' in config:
+            for genre in seed['igenres']:
+                for group in config['genres']:
+                    if genre in group:
+                        for cg in group:
+                            seed_genres.add(cg)
+                            
         # Rebuild tree, if required
         if TracksDb.last_call is None or \
             (match_all_genres and not TracksDb.last_call['match_all_genres']) or \

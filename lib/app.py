@@ -98,19 +98,9 @@ def dump_api():
     if entry is None:
         abort(404)
 
-    seed_genres=set()
-    if 'igenres' in entry and 'genres' in cfg:
-        for genre in entry['igenres']:
-            for group in cfg['genres']:
-                if genre in group:
-                    for cg in group:
-                        if not cg in seed_genres:
-                            seed_genres.add(cg)
-
     fmt = get_value(params, 'format', '', isPost)
 
-    tracks = db.get_similar_tracks(entry, seed_genres, \
-                match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
+    tracks = db.get_similar_tracks(cfg, entry,  match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
     count = int(get_value(params, 'count', 50000, isPost))
     tracks = tracks[:count]
     if not fmt.startswith('text'):
@@ -187,7 +177,6 @@ def similar_api():
 
     seed_track_db_entries=[]
     seed_genres=set()
-    all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
     for trk in params['track']:
         track = decode(trk, root)
         _LOGGER.debug('S TRACK %s -> %s' % (trk, track))
@@ -237,7 +226,7 @@ def similar_api():
         match_all_genres = ('ignoregenre' in cfg) and ('*'==cfg['ignoregenre'][0] or (seed['artist'] in cfg['ignoregenre']))
 
         # Query DB for similar tracks
-        resp = db.get_similar_tracks(seed, seed_genres, match_all_genres, len(skip_rows))
+        resp = db.get_similar_tracks(cfg, seed, match_all_genres, len(skip_rows))
 
         for track in resp:
         
