@@ -161,11 +161,12 @@ class TracksDb(object):
                     config['genres'] = config_genres
                     config['all_genres'] = set(all_genres)
                 else:
-                    config.pop('genres')
-                    config.pop('all_genres')
+                    config['genres'] = []
+                    config['all_genres'] = set()
 
             # Create map of genre -> list of differences to other genres
             for genre in range(len(TracksDb.genre_map)):
+                in_all = genre in config['all_genres']
                 diff_map={}
                 genre_group=set()
                 if 'genres' in config:
@@ -177,9 +178,14 @@ class TracksDb(object):
                     if ogenre==genre:
                         diff_map[ogenre]=0.1
                     elif ogenre in genre_group:
+                        # ogenre is in same group as genre
+                        diff_map[ogenre]=0.3
+                    elif not in_all and ogenre not in config['all_genres']:
+                        # again, ogenre is in same group as genre - i.e. they are both in the 'ungrouped' genre
                         diff_map[ogenre]=0.3
                     else:
                         diff_map[ogenre]=0.7
+
                 TracksDb.genre_differences[genre]=diff_map
 
             _LOGGER.debug('Loaded %d tracks in:%dms' % (len(TracksDb.track_list), int((time.time_ns()-tstart)/1000000)))
