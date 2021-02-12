@@ -239,8 +239,9 @@ class TracksDb(object):
 
             tstart = time.time_ns()
             genre_attrib = len(ESSENTIA_ATTRIBS)
+            genre_diff_map = TracksDb.genre_differences[seed['igenres'][0]]
             for i in range(len(TracksDb.track_list)):
-                TracksDb.attrib_list[i][genre_attrib] = TracksDb.genre_differences[seed['igenres'][0]][TracksDb.track_list[i]['igenres'][0]]
+                TracksDb.attrib_list[i][genre_attrib] = genre_diff_map[TracksDb.track_list[i]['igenres'][0]]
 
             _LOGGER.debug('Calc genre diff time:%d' % int((time.time_ns()-tstart)/1000000))
 
