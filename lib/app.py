@@ -40,6 +40,8 @@ class EssentiaApp(Flask):
         # Load tracks DB into memory
         tracks_db.TracksDb(app_config)
 
+        random.seed()
+
     def get_config(self):
         return self.app_config
     
