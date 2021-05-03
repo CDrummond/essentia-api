@@ -20,13 +20,13 @@ from . import cue, filters, tracks_db
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_TRACKS_TO_RETURN      = 5    # Number of tracks to return, if none specified
-MIN_TRACKS_TO_RETURN          = 5    # Min value for 'count' parameter
-MAX_TRACKS_TO_RETURN          = 50   # Max value for 'count' parameter
-NUM_PREV_TRACKS_FILTER_ARTIST = 15   # Try to ensure artist is not in previous N tracks
-NUM_PREV_TRACKS_FILTER_ALBUM  = 25   # Try to ensure album is not in previous N tracks
-SHUFFLE_FACTOR                = 3    # How many (shuffle_factor*count) tracks to shuffle?
-VERBOSE_DEBUG                 = True
+DEFAULT_TRACKS_TO_RETURN              = 5    # Number of tracks to return, if none specified
+MIN_TRACKS_TO_RETURN                  = 5    # Min value for 'count' parameter
+MAX_TRACKS_TO_RETURN                  = 50   # Max value for 'count' parameter
+DEFAULT_NUM_PREV_TRACKS_FILTER_ARTIST = 15   # Try to ensure artist is not in previous N tracks
+DEFAULT_NUM_PREV_TRACKS_FILTER_ALBUM  = 25   # Try to ensure album is not in previous N tracks
+SHUFFLE_FACTOR                        = 3    # How many (shuffle_factor*count) tracks to shuffle?
+VERBOSE_DEBUG                         = True
 
 
 class EssentiaApp(Flask):
@@ -155,7 +155,14 @@ def similar_api():
     shuffle = get_value(params, 'shuffle', '1', isPost)=='1'
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
+    no_repeat_artist = int(get_value(params, 'norepart', 0, isPost))
+    no_repeat_album = int(get_value(params, 'norepalb', 0, isPost))
     exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
+
+    if no_repeat_artist<0 or no_repeat_artist>200:
+        no_repeat_artist = DEFAULT_NUM_PREV_TRACKS_FILTER_ARTIST
+    if no_repeat_album<0 or no_repeat_album>200:
+        no_repeat_album = DEFAULT_NUM_PREV_TRACKS_FILTER_ALBUM
 
     cfg = essentia_app.get_config()
     db = tracks_db.TracksDb(cfg)
@@ -248,10 +255,10 @@ def similar_api():
                     filtered_by_current_tracks.append(track)
                     if track['artist'] in matched_artists and track['similarity'] - matched_artists[track['artist']]['similarity'] <= 0.25:
                         matched_artists[track['artist']]['tracks'].append(track)
-                elif filters.same_artist_or_album(previous_track_db_entries, track, False, NUM_PREV_TRACKS_FILTER_ARTIST):
+                elif no_repeat_artist>0 and filters.same_artist_or_album(previous_track_db_entries, track, False, no_repeat_artist):
                     log_track('FILTERED(previous(artist))', track)
                     filtered_by_previous_tracks.append(track)
-                elif filters.same_artist_or_album(previous_track_db_entries, track, True, NUM_PREV_TRACKS_FILTER_ALBUM):
+                elif no_repeat_album>0 and filters.same_artist_or_album(previous_track_db_entries, track, True, no_repeat_album):
                     log_track('FILTERED(previous(album))', track)
                     filtered_by_previous_tracks.append(track)
                 elif filters.match_title(current_titles, track):

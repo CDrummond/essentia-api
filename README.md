@@ -21,7 +21,7 @@ The API server can be installed as a Systemd service, or started manually:
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&previous=/path/to/previous&filterxmas=1&shuffle=1
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&norepart=15&norepalb=25&previous=/path/to/previous&filterxmas=1&shuffle=1
 ```
 ...this will get 10 similar tracks to those supplied.
 
@@ -36,6 +36,14 @@ genres will be excluded - unless it is December.
 
 `min` and `max` can be used to set the minimum, and maximum, duration (in
 seconds) of tracks to be considered.
+
+`norepart` specifies the number of tracks where an artist should not be
+repeated. This is not a hard-limit, as if there are too few candidates then
+repeats can happen.
+
+`norepalb` specifies the number of tracks where an album should not be
+repeated. This does not aply to 'Various Artist' albums. This is not also not a
+hard-limit, as if there are too few candidates then repeats can happen.
 
 `previous` may be used to list tracks to ignore (e.g. tracks that are already in
 the queue). This parameter, like `track`, may be repeated multiple times.
