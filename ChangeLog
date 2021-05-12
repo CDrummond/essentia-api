@@ -1,6 +1,7 @@
 0.0.2
 -----
 1. Allow configuring no repeat artist/album/track
+2. Fix parsing of 1/0 parameters.
 
 0.0.1
 -----

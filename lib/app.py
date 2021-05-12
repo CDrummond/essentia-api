@@ -151,13 +151,13 @@ def similar_api():
     elif count > MAX_TRACKS_TO_RETURN:
         count = MAX_TRACKS_TO_RETURN
 
-    match_genre = get_value(params, 'filtergenre', '0', isPost)=='1'
-    shuffle = get_value(params, 'shuffle', '1', isPost)=='1'
+    match_genre = int(get_value(params, 'filtergenre', '0', isPost))==1
+    shuffle = int(get_value(params, 'shuffle', '1', isPost))==1
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
     no_repeat_artist = int(get_value(params, 'norepart', 0, isPost))
     no_repeat_album = int(get_value(params, 'norepalb', 0, isPost))
-    exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
+    exclude_christmas = int(get_value(params, 'filterxmas', '0', isPost))==1 and datetime.now().month!=12
 
     if no_repeat_artist<0 or no_repeat_artist>200:
         no_repeat_artist = DEFAULT_NUM_PREV_TRACKS_FILTER_ARTIST
