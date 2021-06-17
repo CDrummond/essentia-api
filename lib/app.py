@@ -103,27 +103,35 @@ def dump_api():
     fmt = get_value(params, 'format', '', isPost)
 
     tracks = db.get_similar_tracks(entry,  match_all_genres=1==int(get_value(params, 'matchallgenres', '0', isPost)))
-    count = int(get_value(params, 'count', 50000, isPost))
+    count = int(get_value(params, 'count', 1000, isPost))
     tracks = tracks[:count]
+
     if not fmt.startswith('text'):
         return json.dumps(tracks)
 
-    header = "file\tsimilarity\tgenres"
-
-    if fmt=='textall':
-        for attr in tracks_db.ESSENTIA_ATTRIBS:
-            header+="\t%s" % attr
     resp=[]
-    resp.append(header)
-    for track in tracks:
-        if 'genres' in track:
-            line="%s\t%f\t%s" % (track['file'], track['similarity'], track['genres'])
-        else:
-            line="%s\t%f\tXXXXX" % (track['file'], track['similarity'])
+
+    if fmt=='text-url':
+        tracks.insert(0, entry)
+        for track in tracks:
+            path = '%s%s' % (root, track['file'])
+            resp.append(cue.convert_to_cue_url(path))
+    else:
+        header = "file\tsimilarity\tgenres"
+
         if fmt=='textall':
             for attr in tracks_db.ESSENTIA_ATTRIBS:
-                line+="\t%f" % track[attr]
-        resp.append(line)
+                header+="\t%s" % attr
+        resp.append(header)
+        for track in tracks:
+            if 'genres' in track:
+                line="%s\t%f\t%s" % (track['file'], track['similarity'], track['genres'])
+            else:
+                line="%s\t%f\tXXXXX" % (track['file'], track['similarity'])
+            if fmt=='textall':
+                for attr in tracks_db.ESSENTIA_ATTRIBS:
+                    line+="\t%f" % track[attr]
+            resp.append(line)
 
     return '\n'.join(resp)
 
