@@ -232,11 +232,13 @@ class TracksDb(object):
         return None
 
 
-    def get_similar_tracks(self, seed, match_all_genres=False, num_skip=0):
+    def get_similar_tracks(self, seed, match_all_genres=False, num_skip=0, count=NUM_NEIGHBOURS):
         query = ''
         duration = ''
         total = 0
         _LOGGER.debug('Query similar tracks to: %s' % str(seed))
+        if count<=0:
+            count = len(TracksDb.track_list)
 
         # Rebuild tree, if required
         if TracksDb.last_call is None or \
@@ -259,7 +261,7 @@ class TracksDb(object):
             _LOGGER.debug('Build tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
-        distances, indexes = TracksDb.last_call['tree'].query(numpy.array([seed['attribs']]), k=NUM_NEIGHBOURS+num_skip)
+        distances, indexes = TracksDb.last_call['tree'].query(numpy.array([seed['attribs']]), k=count+num_skip)
         _LOGGER.debug('Tree time:%d' % int((time.time_ns()-tstart)/1000000))
 
         tstart = time.time_ns()
