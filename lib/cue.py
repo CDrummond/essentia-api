@@ -1,5 +1,5 @@
 #
-# Analyse files with Musly, and provide an API to retrieve similar tracks
+# Essentia API Service for LMS
 #
 # Copyright (c) 2020-2021 Craig Drummond <craig.p.drummond@gmail.com>
 # GPLv3 license.

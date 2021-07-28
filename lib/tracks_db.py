@@ -137,7 +137,7 @@ class TracksDb(object):
                         attribs.append((row[9+attr]-TracksDb.min_bpm)/TracksDb.bpm_range)
                     else:
                         attribs.append(row[9+attr])
-                attribs.append(5)
+                attribs.append(5) # Place holder for genre difference attribute
 
                 TracksDb.track_list.append(track)
                 attrib_list.append(attribs)
@@ -217,13 +217,14 @@ class TracksDb(object):
                     details['genres'] = [NO_GENRE]
 
                 if is_seed:
+                    # This track will be used to find similar tracks, so we need its essentia attributes
                     attribs=[]
                     for attr in range(len(ESSENTIA_ATTRIBS)):
                         if 'bpm'==ESSENTIA_ATTRIBS[attr]:
                             attribs.append((row[7+attr]-TracksDb.min_bpm)/TracksDb.bpm_range)
                         else:
                             attribs.append(row[7+attr])
-                    attribs.append(0)
+                    attribs.append(0) # Place holder for genre difference attribute
                     details['attribs']=attribs
                 return details
         except Exception as e:
@@ -249,10 +250,7 @@ class TracksDb(object):
             genre_attrib = len(ESSENTIA_ATTRIBS)
             genre_diff_map = TracksDb.genre_differences[seed['igenres'][0]]
             for i in range(len(TracksDb.track_list)):
-                if match_all_genres:
-                    TracksDb.attrib_list[i][genre_attrib] = 0
-                else:
-                    TracksDb.attrib_list[i][genre_attrib] = genre_diff_map[TracksDb.track_list[i]['igenres'][0]]
+                TracksDb.attrib_list[i][genre_attrib] = 0 if match_all_genres else genre_diff_map[TracksDb.track_list[i]['igenres'][0]]
 
             _LOGGER.debug('Calc genre diff time:%d' % int((time.time_ns()-tstart)/1000000))
 

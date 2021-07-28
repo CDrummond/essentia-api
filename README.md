@@ -6,7 +6,7 @@ any provided seed tracks.
 
 ## Analysing Tracks
 
-Before this script can function you first need to anayze your tracks using
+Before this script can function you first need to analyze your tracks using
 [Essentia Analyzer](https://github.com/CDrummond/essentia-analyzer)
 
 
@@ -42,7 +42,7 @@ repeated. This is not a hard-limit, as if there are too few candidates then
 repeats can happen.
 
 `norepalb` specifies the number of tracks where an album should not be
-repeated. This does not aply to 'Various Artist' albums. This is not also not a
+repeated. This does not aply to 'Various Artist' albums. This is also not a
 hard-limit, as if there are too few candidates then repeats can happen.
 
 `previous` may be used to list tracks to ignore (e.g. tracks that are already in
