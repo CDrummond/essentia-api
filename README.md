@@ -1,3 +1,7 @@
+**DEPRECATED** Please use [Music Similarity](https://github.com/CDrummond/music-similarity) instead.
+
+---
+
 # Essentia API Server
 
 Simple python3 API server to provide a HTTP API to retrieve similar tracks to
